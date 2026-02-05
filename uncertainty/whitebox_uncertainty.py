@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from collections import Counter
 import math
 
@@ -12,4 +13,4 @@ class WhiteBoxUncertainty:
             probs= F.softmax(logits[0],dim=-1)
             entropy= -(probs*torch.log(probs+1e-12)).sum()
             entropies.append(entropy)
-        return torch.mean(torch.stack(entropies)).item
+        return torch.mean(torch.stack(entropies)).item()
