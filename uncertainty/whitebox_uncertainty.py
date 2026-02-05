@@ -6,36 +6,40 @@ import math
 
 
 class WhiteBoxUncertainty:
+    def __init__(self,scores,token_ids=None,text_responses=None):
+        self.scores= scores
+        self.token_ids= token_ids
+        self.text_responses= text_responses
     
-    def predictive_entropy(scores):
+    def predictive_entropy(self):
         entropies=[]
-        for logits in scores:
+        for logits in self.scores:
             probs= F.softmax(logits[0],dim=-1)
             entropy= -(probs*torch.log(probs+1e-12)).sum()
             entropies.append(entropy)
         return torch.mean(torch.stack(entropies)).item()
     
-    def sequence_log_probability(scores,token_ids):
+    def sequence_log_probability(self):
         log_probs= []
 
-        for t, logits in enumerate(scores):
+        for t, logits in enumerate(self.scores):
             log_softmax= F.log_softmax(logits[0],dim=-1)
-            token_id= token_ids[0,t]
+            token_id= self.token_ids[0,t]
             log_probs.append(log_softmax[token_id])
         return torch.stack(log_probs).sum().item()
     
 
-    def sequence_probability(scores,token_ids):
-        log_p= WhiteBoxUncertainty.sequence_log_probability(scores,token_ids)
+    def sequence_probability(self):
+        log_p= WhiteBoxUncertainty.sequence_log_probability(self.scores,self.token_ids)
         return math.exp(log_p)
 
-    def confidence(scores,token_ids):
-        return WhiteBoxUncertainty.sequence_probability(scores,token_ids)
+    def confidence(self):
+        return WhiteBoxUncertainty.sequence_probability(self.scores,self.token_ids)
 
 
-    def self_consistency(text_responses):
+    def self_consistency(self):
 
-        normalized= [t.strip().lower() for t in text_responses]
+        normalized= [t.strip().lower() for t in self.text_responses]
         counts= Counter(normalized)
         most_common= counts.most_common(1)[0][1]
-        return most_common/ len(text_responses)   
+        return most_common/ len(self.text_responses)   
