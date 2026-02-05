@@ -28,3 +28,14 @@ class WhiteBoxUncertainty:
     def sequence_probability(scores,token_ids):
         log_p= WhiteBoxUncertainty.sequence_log_probability(scores,token_ids)
         return math.exp(log_p)
+
+    def confidence(scores,token_ids):
+        return WhiteBoxUncertainty.sequence_probability(scores,token_ids)
+
+
+    def self_consistency(text_responses):
+
+        normalized= [t.strip().lower() for t in text_responses]
+        counts= Counter(normalized)
+        most_common= counts.most_common(1)[0][1]
+        return most_common/ len(text_responses)   
