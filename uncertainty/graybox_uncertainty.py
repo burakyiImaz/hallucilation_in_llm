@@ -21,17 +21,17 @@ class GrayBoxUncertainty:
         counts= Counter(normalized)
         probs= np.array(list(counts.values()))/len(self.responses)
 
-        return -np.sum(probs*log(probs+1e-12))
+        return -np.sum(probs*np.log(probs+1e-12))
     
 
 
     def mean_log_probability(self):
         if self.log_probs is None:
             raise ValueError("log_probs not provided")
-        return sum(self.log_probs) / len(self.loprobs) 
+        return sum(self.log_probs) / len(self.log_probs) 
+    
     
     def confidence(self):
-
 
         consistency = self.self_consistency()
 
