@@ -19,7 +19,7 @@ class HFModel:
         self,
         model_name,
         device=None,
-        hf_token=None,
+        hf_token="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",
         allow_api_fallback=True,
     ):
         self.model_name = model_name
