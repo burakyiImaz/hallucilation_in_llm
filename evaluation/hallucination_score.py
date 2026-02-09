@@ -20,7 +20,7 @@ class HallucinationScore:
 
         if self.weights is not None:
             components.append(self.weights["white"]* self.white)
-            total_weights += self.weights["weight"]
+            total_weights += self.weights["white"]
         if self.gray is not None:
             components.append((self.weights["gray"])*(1-self.gray))
             total_weights += self.weights["gray"]

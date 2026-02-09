@@ -16,7 +16,8 @@ class EvaluationReport:
             "white_uncertainty": self.white,
             "gray_uncertainty": self.gray,
             "black_uncertainty": self.black,
-        )
+            )
+        
 
     def pretty_print(self):
         print("--- Evaluation Report ---")
