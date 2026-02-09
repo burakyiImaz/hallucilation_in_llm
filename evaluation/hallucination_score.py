@@ -1,35 +1,48 @@
+import math
+
+
 class HallucinationScore:
 
-    def __init__(self, white_score=None, gray_score=None, black_score=None, weights=None):
-
+    def __init__(
+        self,
+        white_score=None,
+        gray_score=None,
+        black_score=None,
+        weights=None,
+        entropy_max=5.0
+    ):
         self.white = white_score
         self.gray = gray_score
         self.black = black_score
+        self.entropy_max = entropy_max
 
         self.weights = weights or {
-            "white": 1.0,
-            "gray": 1.0,
-            "black": 1.0
+            "white": 0.4,
+            "gray": 0.3,
+            "black": 0.3
         }
 
     def score(self):
-
         components = []
-        total_weights = 0.0
+        total_weight = 0.0
 
+        # White-box: entropy → normalized uncertainty
         if self.white is not None:
-            components.append(self.weights["white"] * self.white)
-            total_weights += self.weights["white"]
+            white_norm = min(self.white / self.entropy_max, 1.0)
+            components.append(self.weights["white"] * white_norm)
+            total_weight += self.weights["white"]
 
+        # Gray-box: confidence → uncertainty
         if self.gray is not None:
             components.append(self.weights["gray"] * (1 - self.gray))
-            total_weights += self.weights["gray"]
+            total_weight += self.weights["gray"]
 
+        # Black-box: consistency → uncertainty
         if self.black is not None:
             components.append(self.weights["black"] * (1 - self.black))
-            total_weights += self.weights["black"]
+            total_weight += self.weights["black"]
 
-        if total_weights == 0:
+        if total_weight == 0:
             raise ValueError("No uncertainty signals provided")
 
-        return sum(components) / total_weights
+        return sum(components) / total_weight
