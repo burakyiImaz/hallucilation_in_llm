@@ -1,29 +1,39 @@
 # api_model_flow.py
 import matplotlib.pyplot as plt
-import networkx as nx
+import numpy as np
+import pandas as pd
+import seaborn as sns
 
 class ApiModelFlow:
-    def __init__(self, output_path="api_model_flow.png"):
-        self.output_path = output_path
+    def __init__(self, output_path_bar="api_model_bar.png", output_path_line="api_model_line.png"):
+        self.output_path_bar = output_path_bar
+        self.output_path_line = output_path_line
 
     def generate(self):
-        G = nx.DiGraph()
-        
-        G.add_node("Prompt Text")
-        G.add_node("API Call (HF Inference)")
-        G.add_node("Generated Text Only")
-        G.add_node("ModelOutput Object")
-        
-        G.add_edges_from([
-            ("Prompt Text", "API Call (HF Inference)"),
-            ("API Call (HF Inference)", "Generated Text Only"),
-            ("Generated Text Only", "ModelOutput Object")
-        ])
-        
-        pos = nx.spring_layout(G, seed=15)
-        plt.figure(figsize=(10,5))
-        nx.draw(G, pos, with_labels=True, node_size=3500, node_color='orange', font_size=10, font_weight='bold', arrowsize=20)
-        plt.title("API Model Flow (Black-box)", fontsize=14)
-        plt.savefig(self.output_path, dpi=300)
+        # Simüle edilmiş token frekansı
+        token_ids = np.random.randint(0, 20, size=100)
+        token_counts = pd.Series(token_ids).value_counts().sort_index()
+
+        # Bar chart
+        plt.figure(figsize=(10,6))
+        sns.barplot(x=token_counts.index, y=token_counts.values, palette="magma")
+        plt.xlabel("Token ID")
+        plt.ylabel("Frequency")
+        plt.title("API Model Generated Token Frequencies")
+        plt.savefig(self.output_path_bar, dpi=300)
         plt.close()
-        print(f"API model flow diagram saved as {self.output_path}")
+        print(f"API model bar chart saved as {self.output_path_bar}")
+
+        # Line chart (simüle edilmiş temperature vs entropy)
+        temperatures = np.linspace(0.1, 2.0, 10)
+        entropy = np.log(temperatures + 1) + np.random.rand(10)*0.1
+
+        plt.figure(figsize=(8,5))
+        plt.plot(temperatures, entropy, marker='o', linestyle='-', color='teal')
+        plt.xlabel("Temperature")
+        plt.ylabel("Entropy")
+        plt.title("Temperature vs Entropy (Simulated)")
+        plt.grid(True)
+        plt.savefig(self.output_path_line, dpi=300)
+        plt.close()
+        print(f"API model line chart saved as {self.output_path_line}")
