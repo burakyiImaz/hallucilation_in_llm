@@ -51,3 +51,10 @@ class GrayBoxUncertainty:
             return consistency * likelihood
 
         return consistency
+
+
+    def compute(self):
+        return {
+            "gray_confidence": self.confidence(),
+            "gray_entropy": self.response_entropy()
+        }

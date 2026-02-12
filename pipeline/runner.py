@@ -7,11 +7,19 @@ class PipelineRunner:
         self.decider = decider
 
     def run(self, prompt):
+
         output = self.model.generate(prompt)
 
         uncertainty_results = {}
-        for name, module in self.uncertainty_modules.items():
-            uncertainty_results[name] = module.compute(output)
+
+        for name, module_class in self.uncertainty_modules.items():
+
+            # Output'u module içine veriyoruz
+            module = module_class(output)
+
+            result = module.compute()
+
+            uncertainty_results.update(result)
 
         evaluation = self.evaluator.evaluate(uncertainty_results)
 

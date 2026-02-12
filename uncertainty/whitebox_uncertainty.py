@@ -38,3 +38,10 @@ class WhiteBoxUncertainty:
         counts = Counter(normalized)
         most_common = counts.most_common(1)[0][1]
         return most_common / len(self.text_responses)
+    def compute(self):
+        return {
+            "white_entropy": self.predictive_entropy(),
+            "white_confidence": self.confidence(),
+            "white_consistency": self.self_consistency()
+        }
+

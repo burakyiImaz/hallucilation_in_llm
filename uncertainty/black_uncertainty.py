@@ -34,3 +34,11 @@ class BlackBoxUncertainty:
     def confidence(self):
 
         return self.self_consistency()
+
+    def compute(self):
+        return {
+            "black_consistency": self.self_consistency(),
+            "black_entropy": self.response_entropy(),
+            "black_confidence": self.confidence()
+        }
+
