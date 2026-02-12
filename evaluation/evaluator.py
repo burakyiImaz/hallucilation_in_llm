@@ -1,10 +1,8 @@
 class Evaluator:
-
     def __init__(self, final_score_calculator):
         self.final_score_calculator = final_score_calculator
 
     def evaluate(self, uncertainty_results: dict):
-
         metrics = {
             "entropy": uncertainty_results.get("white_entropy", 0),
             "confidence": uncertainty_results.get("gray_confidence", 0),

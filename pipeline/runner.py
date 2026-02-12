@@ -1,3 +1,6 @@
+from evaluation.evaluator import Evaluator
+
+
 class PipelineRunner:
 
     def __init__(self, model, uncertainty_modules, evaluator, decider):

@@ -1,4 +1,4 @@
 from .black_uncertainty import BlackBoxUncertainty
 from .graybox_uncertainty import GrayBoxUncertainty
 from .whitebox_uncertainty import WhiteBoxUncertainty
-from .semantic_uncertainty import SemanticUncertainty
+from .semantic_uncertainty import EnsembleSemanticUncertainty

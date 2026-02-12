@@ -87,3 +87,16 @@ class EnsembleSemanticUncertainty:
             name: self._semantic_consistency_single_model(enc)
             for name, enc in zip(self.model_names, self.encoders)
         }
+    def compute(self):
+        """
+        Pipeline ile uyumlu ve senin fonksiyon isimlerine göre:
+        - semantic_consistency: cevapların benzerliği (yüksek = güven yüksek)
+        - uncertainty: belirsizlik (yüksek = güven düşük)
+        """
+        consistency = self.semantic_consistency()  # 0-1 arası consistency
+        uncertainty_score = 1.0 - consistency
+
+        return {
+            "semantic_consistency": consistency,
+            "uncertainty": uncertainty_score
+        }
