@@ -1,0 +1,76 @@
+Prompt,Responses,Blackbox_Uncertainty,Graybox_Uncertainty,Whitebox_Uncertainty,Semantic_Uncertainty,Final_Score,Decision,Semantic_Similarity,Pearson_Corr,Spearman_Corr,AUROC,PR_AUC,Brier_Score,ECE
+What is the capital of France?,"What is the capital of France?
+
+The capital of France is Paris. It is the capital of France. It is the capital of France. It is the capital of France. It is the capital of France. It is the capital of France. It is the capital of France; What is the capital of France?
+
+The capital of France is Paris. The capital of France is Paris.
+
+The capital of France is Paris.
+
+The capital of France is Paris.
+
+The capital of France is Paris.
+
+The capital of France is; What is the capital of France?
+
+The capital of France is Paris. The capital of France is Paris. The capital of France is Paris. The capital of France is Paris. The capital of France is Paris. The capital of France is Paris. The capital of France is Paris",,,,,nan,reliable,0.5232422351837158,0.0,0.0,0.5,0.0,nan,0.0
+Explain photosynthesis.,"Explain photosynthesis.
+
+The photosynthetic process is a process that involves the production of photosynthetic chemicals and the production of photosynthetic enzymes. The photosynthetic process is a process that involves the production of photosynthetic enzymes.
+
+The photos; Explain photosynthesis.
+
+The photosynthetic process is a process that involves photosynthesis of the food web, which is the food web of plants. Plants use photosynthesis to produce energy, which is what they need to grow. Plants use photosynthesis to produce photos; Explain photosynthesis.
+
+The first step is to get a good understanding of the chemical composition of the air.
+
+The second step is to understand the chemical composition of the air.
+
+The third step is to understand the chemical composition of the air.
+",,,,,nan,reliable,0.7134557366371155,0.0,0.0,0.5,0.0,nan,0.0
+Who painted the Mona Lisa?,"Who painted the Mona Lisa?
+
+I'm not sure. I think it's a little too much of a mystery.
+
+What's your favorite thing about the Mona Lisa?
+
+I love the way it looks. It's a little bit of a mystery.; Who painted the Mona Lisa?
+
+The Mona Lisa is a very popular figure in the Marvel Universe. It was created by Marvel Comics artist Mike Colter and is a character that was created by Marvel Comics artist Mike Colter.
+
+Marvel Comics artist Mike Colter
+; Who painted the Mona Lisa?
+
+I'm not sure. I'm not sure if it's the painting or the painting itself. I'm not sure if it's the painting or the painting itself.
+
+I'm not sure if it's the painting or the painting itself",,,,,nan,reliable,0.22429335117340088,0.0,0.0,0.5,0.0,nan,0.0
+Define black holes.,"Define black holes.
+
+The idea is to create a black hole that is not only black, but also not only black-white. The black hole is a black hole, and it is not just black, but also not only black-white.
+
+The; Define black holes.
+
+The first step is to create a new black hole. The first step is to create a new black hole.
+
+The first step is to create a new black hole.
+
+The first step is to create a new black hole.; Define black holes.
+
+The first thing you need to do is to create a black hole.
+
+The first thing you need to do is to create a black hole. The first thing you need to do is to create a black hole. The first thing you",,,,,nan,reliable,0.5924714803695679,0.0,0.0,0.5,0.0,nan,0.0
+What is quantum entanglement?,"What is quantum entanglement?
+
+Quantum entanglement is the process by which a particle is entangled with a particle. The term ""quantum entanglement"" is used to describe the process by which particles are entangled with one another.
+
+The term ""quant; What is quantum entanglement?
+
+Quantum entanglement is the process by which a particle is entangled with a particle. The process is called quantum entanglement.
+
+The process is called quantum entanglement. The particle is entangled with the particle.
+
+; What is quantum entanglement?
+
+Quantum entanglement is the process by which a particle is entangled with another particle. The process is called quantum entanglement.
+
+The process is called quantum entanglement. The particle is entangled with a particle. The particle",,,,,nan,reliable,0.8249018788337708,0.0,0.0,0.5,0.0,nan,0.0

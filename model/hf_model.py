@@ -29,11 +29,12 @@ class HFModel:
             **inputs,
             max_new_tokens=max_new_tokens,
             do_sample=True,
-            temperature=0.8,
-            top_p=0.95,
+            temperature=0.2,
+            top_k=50,
+            top_p=0.9,
             num_return_sequences=num_samples,
-            output_scores=True,                  # 🔥 WhiteBox için şart
-            return_dict_in_generate=True         # 🔥 WhiteBox için şart
+            output_scores=True,                  #  WhiteBox için şart
+            return_dict_in_generate=True         #  WhiteBox için şart
         )
 
         sequences = outputs.sequences
