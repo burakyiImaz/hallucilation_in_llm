@@ -10,9 +10,7 @@ class GrayBoxUncertainty:
         self.responses = responses
         self.log_probs = log_probs  # List[Tensor(seq_len)]
 
-    # -------------------------
-    # Black-style metrics
-    # -------------------------
+
     def self_consistency(self):
         normalized = [r.strip().lower() for r in self.responses]
         counts = Counter(normalized)
@@ -25,9 +23,8 @@ class GrayBoxUncertainty:
         probs = np.array(list(counts.values())) / len(self.responses)
         return -np.sum(probs * np.log(probs + 1e-12))
 
-    # -------------------------
-    # Gray-box metrics
-    # -------------------------
+ 
+ 
     def mean_log_probability(self):
         """
         Robust mean log-probability across all sequences and tokens

@@ -16,9 +16,6 @@ class WhiteBoxUncertainty:
         self.token_ids = token_ids
         self.text_responses = text_responses
 
-    # -------------------------------------------------
-    # Predictive Entropy (token-level average entropy)
-    # -------------------------------------------------
     def predictive_entropy(self):
 
         if self.scores is None:
@@ -37,9 +34,7 @@ class WhiteBoxUncertainty:
 
         return torch.stack(sample_entropies).mean().item()
 
-    # -------------------------------------------------
-    # Sequence log probability
-    # -------------------------------------------------
+
     def sequence_log_probability(self):
 
         if self.scores is None:
@@ -65,25 +60,22 @@ class WhiteBoxUncertainty:
         mean_log_prob = torch.stack(sequence_log_probs).mean()
         return mean_log_prob.item()
 
-    # -------------------------------------------------
-    # Sequence probability (confidence base)
-    # -------------------------------------------------
+
     def sequence_probability(self):
         return math.exp(self.sequence_log_probability())
 
     def confidence(self):
         return self.sequence_probability()
 
-    # -------------------------------------------------
-    # Self consistency
-    # -------------------------------------------------
+
+
     def self_consistency(self):
         normalized = [t.strip().lower() for t in self.text_responses]
         counts = Counter(normalized)
         most_common = counts.most_common(1)[0][1]
         return most_common / len(self.text_responses)
 
-    # -------------------------------------------------
+
     def compute(self):
         return {
             "white_entropy": self.predictive_entropy(),

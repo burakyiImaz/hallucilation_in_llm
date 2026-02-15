@@ -53,8 +53,6 @@ class HFModel:
             token_ids = seq.tolist()
             token_ids_list.append(token_ids)
 
-        # 🔥 logits işleme
-        # scores: tuple[new_tokens] -> each shape (batch, vocab)
         if scores is not None:
             stacked_scores = torch.stack(scores, dim=0)  # (new_tokens, batch, vocab)
             stacked_scores = stacked_scores.permute(1, 0, 2)  # (batch, new_tokens, vocab)
