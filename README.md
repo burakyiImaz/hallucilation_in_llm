@@ -5,7 +5,7 @@
 
 ---
 
-## 📌 1. Problem Definition
+# 📌 1. Problem Definition
 
 Large Language Models (LLMs) often generate fluent but factually incorrect answers.
 This phenomenon is known as:
