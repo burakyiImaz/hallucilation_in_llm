@@ -83,199 +83,522 @@ hallucilation_in_llm/
 
 ---
 
-# 🔍 4.1 White-Box Uncertainty
+🔍 4.1 White-Box Uncertainty
+(1) Predictive Entropy
 
-Uses internal model logits.
+Token dağılımı için:
 
-### (1) Predictive Entropy
+𝐻
+(
+𝑝
+)
+=
+−
+∑
+𝑖
+=
+1
+𝑉
+𝑝
+𝑖
+log
+⁡
+𝑝
+𝑖
+H(p)=−
+i=1
+∑
+V
+	​
 
-For token distribution:
+p
+i
+	​
 
-[
-H(p) = - \sum_{i=1}^{V} p_i \log p_i
-]
+logp
+i
+	​
+
 
 Where:
 
-* ( V ) = vocabulary size
-* ( p_i ) = softmax probability
+V = vocabulary size
 
-Higher entropy → more uncertainty.
+p_i = softmax probability
 
----
+Higher entropy ⇒ higher uncertainty.
 
-### (2) Sequence Log Probability
+(2) Sequence Log Probability
+log
+⁡
+𝑃
+(
+𝑦
+)
+=
+∑
+𝑡
+=
+1
+𝑇
+log
+⁡
+𝑃
+(
+𝑦
+𝑡
+∣
+𝑦
+<
+𝑡
+)
+logP(y)=
+t=1
+∑
+T
+	​
 
-[
-\log P(y) = \sum_{t=1}^{T} \log P(y_t | y_{<t})
-]
+logP(y
+t
+	​
+
+∣y
+<t
+	​
+
+)
 
 Sequence probability:
 
-[
-P(y) = e^{\log P(y)}
-]
+𝑃
+(
+𝑦
+)
+=
+𝑒
+log
+⁡
+𝑃
+(
+𝑦
+)
+P(y)=e
+logP(y)
 
 Confidence:
 
-[
-Confidence = P(y)
-]
+𝐶
+𝑜
+𝑛
+𝑓
+𝑖
+𝑑
+𝑒
+𝑛
+𝑐
+𝑒
+=
+𝑃
+(
+𝑦
+)
+Confidence=P(y)
+🟡 4.2 Gray-Box Uncertainty
+Mean Log Probability
+ℓ
+ˉ
+=
+1
+𝑁
+∑
+𝑖
+=
+1
+𝑁
+log
+⁡
+𝑝
+𝑖
+ℓ
+ˉ
+=
+N
+1
+	​
 
----
+i=1
+∑
+N
+	​
 
-# 🟡 4.2 Gray-Box Uncertainty
+logp
+i
+	​
 
-Uses token log-probabilities (no full logits).
-
-### Mean Log Probability
-
-[
-\bar{\ell} = \frac{1}{N} \sum_{i=1}^{N} \log p_i
-]
 
 Converted to probability:
 
-[
-P = e^{\bar{\ell}}
-]
+𝑃
+=
+𝑒
+ℓ
+ˉ
+P=e
+ℓ
+ˉ
 
 Final gray confidence:
 
-[
-Confidence = SelfConsistency \times P
-]
+𝐶
+𝑜
+𝑛
+𝑓
+𝑖
+𝑑
+𝑒
+𝑛
+𝑐
+𝑒
+=
+𝑆
+𝑒
+𝑙
+𝑓
+𝐶
+𝑜
+𝑛
+𝑠
+𝑖
+𝑠
+𝑡
+𝑒
+𝑛
+𝑐
+𝑦
+×
+𝑃
+Confidence=SelfConsistency×P
+⚫ 4.3 Black-Box Uncertainty
+Self-Consistency
+𝐶
+𝑜
+𝑛
+𝑠
+𝑖
+𝑠
+𝑡
+𝑒
+𝑛
+𝑐
+𝑦
+=
+Most Common Response
+Total Responses
+Consistency=
+Total Responses
+Most Common Response
+	​
 
----
+Response Entropy
+𝐻
+=
+−
+∑
+𝑖
+=
+1
+𝐾
+𝑝
+𝑖
+log
+⁡
+𝑝
+𝑖
+H=−
+i=1
+∑
+K
+	​
 
-# ⚫ 4.3 Black-Box Uncertainty
+p
+i
+	​
 
-Uses only generated text.
+logp
+i
+	​
 
-### Self-Consistency
-
-[
-Consistency = \frac{Most\ Common\ Response}{Total\ Responses}
-]
-
----
-
-### Response Entropy
-
-[
-H = - \sum_{i=1}^{K} p_i \log p_i
-]
 
 Where:
 
-* (K) = unique responses
+K = number of unique responses
 
-Higher entropy → more disagreement.
+Higher entropy ⇒ higher disagreement.
 
----
-
-# 🧠 4.4 Semantic Consistency
-
-Uses sentence embeddings.
+🧠 4.4 Semantic Consistency
 
 Cosine similarity:
 
-[
-sim(a,b) = \frac{a \cdot b}{||a|| ||b||}
-]
+𝑠
+𝑖
+𝑚
+(
+𝑎
+,
+𝑏
+)
+=
+𝑎
+⋅
+𝑏
+∣
+∣
+𝑎
+∣
+∣
+ 
+∣
+∣
+𝑏
+∣
+∣
+sim(a,b)=
+∣∣a∣∣∣∣b∣∣
+a⋅b
+	​
+
 
 Semantic consistency:
 
-[
-S = \frac{1}{N} \sum_{i<j} sim(e_i, e_j)
-]
+𝑆
+=
+1
+𝑁
+∑
+𝑖
+<
+𝑗
+𝑠
+𝑖
+𝑚
+(
+𝑒
+𝑖
+,
+𝑒
+𝑗
+)
+S=
+N
+1
+	​
+
+i<j
+∑
+	​
+
+sim(e
+i
+	​
+
+,e
+j
+	​
+
+)
 
 Uncertainty:
 
-[
-U = 1 - S
-]
+𝑈
+=
+1
+−
+𝑆
+U=1−S
+🎯 5. Final Hallucination Score
+𝑆
+𝑐
+𝑜
+𝑟
+𝑒
+=
+𝑤
+𝑤
+⋅
+𝑊
+ℎ
+𝑖
+𝑡
+𝑒
++
+𝑤
+𝑔
+⋅
+𝐺
+𝑟
+𝑎
+𝑦
++
+𝑤
+𝑏
+⋅
+𝐵
+𝑙
+𝑎
+𝑐
+𝑘
+Score=w
+w
+	​
 
----
+⋅White+w
+g
+	​
 
-# 🎯 5. Final Hallucination Score
+⋅Gray+w
+b
+	​
 
-[
-Score =
-w_w \cdot White +
-w_g \cdot Gray +
-w_b \cdot Black
-]
+⋅Black
 
 Default weights:
 
-```
 White: 0.4
 Gray : 0.3
 Black: 0.3
-```
+📊 7. Calibration Metrics
+Brier Score
+𝐵
+𝑆
+=
+1
+𝑁
+∑
+𝑖
+=
+1
+𝑁
+(
+𝑝
+𝑖
+−
+𝑦
+𝑖
+)
+2
+BS=
+N
+1
+	​
 
----
+i=1
+∑
+N
+	​
 
-# 🚦 6. Risk Interpretation
+(p
+i
+	​
 
-| Score | Risk     |
-| ----- | -------- |
-| < 0.3 | LOW      |
-| < 0.6 | MEDIUM   |
-| < 0.8 | HIGH     |
-| ≥ 0.8 | CRITICAL |
+−y
+i
+	​
 
----
-
-# 📊 7. Calibration Metrics
-
----
-
-## Brier Score
-
-[
-BS = \frac{1}{N} \sum (p_i - y_i)^2
-]
+)
+2
 
 Lower is better.
 
----
+Expected Calibration Error (ECE)
+𝐸
+𝐶
+𝐸
+=
+∑
+𝑚
+=
+1
+𝑀
+∣
+𝐵
+𝑚
+∣
+𝑁
+∣
+𝑎
+𝑐
+𝑐
+(
+𝐵
+𝑚
+)
+−
+𝑐
+𝑜
+𝑛
+𝑓
+(
+𝐵
+𝑚
+)
+∣
+ECE=
+m=1
+∑
+M
+	​
 
-## Expected Calibration Error (ECE)
+N
+∣B
+m
+	​
 
-[
-ECE = \sum_{m=1}^{M}
-\frac{|B_m|}{N}
-|acc(B_m) - conf(B_m)|
-]
+∣
+	​
 
-Measures calibration gap.
+∣acc(B
+m
+	​
 
----
+)−conf(B
+m
+	​
 
-# 📈 8. Statistical Metrics
+)∣
 
-### Pearson Correlation
+Measures calibration gap between confidence and accuracy.
 
-[
-r = \frac{cov(X,Y)}{\sigma_X \sigma_Y}
-]
+📈 8. Statistical Metrics
+Pearson Correlation
+𝑟
+=
+𝑐
+𝑜
+𝑣
+(
+𝑋
+,
+𝑌
+)
+𝜎
+𝑋
+𝜎
+𝑌
+r=
+σ
+X
+	​
 
-### Spearman Correlation
+σ
+Y
+	​
 
-Rank-based correlation.
+cov(X,Y)
+	​
 
-### AUROC
+AUROC
 
-Probability model ranks positive higher than negative.
-
-### PR-AUC
-
-Area under Precision-Recall curve.
-
----
-
+Probability that a randomly chosen positive example is ranked higher than a randomly chosen negative one.
 # 🚀 9. How to Run the Pipeline
 
 ---
