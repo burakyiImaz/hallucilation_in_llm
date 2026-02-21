@@ -1,4 +1,5 @@
 
+
 ---
 
 # 🧠 Hallucination-in-LLM
@@ -26,20 +27,18 @@ Instead of relying on a single signal, this project proposes:
 
 We measure hallucination risk from **four epistemic layers**:
 
-| Layer        | Access Level        | What We Measure                           |
-| ------------ | ------------------- | ----------------------------------------- |
-| 🔍 White-Box | Internal logits     | Model’s internal probability distribution |
-| 🟡 Gray-Box  | Token probabilities | Confidence of generated sequence          |
-| ⚫ Black-Box  | Only outputs        | Behavioral stability                      |
-| 🧠 Semantic  | Embeddings          | Meaning-level consistency                 |
-
-This multi-layer structure allows **robust hallucination detection under different deployment scenarios**.
+| Layer        | Access Level        | What We Measure                |
+| ------------ | ------------------- | ------------------------------ |
+| 🔍 White-Box | Internal logits     | Model probability distribution |
+| 🟡 Gray-Box  | Token probabilities | Sequence confidence            |
+| ⚫ Black-Box  | Only outputs        | Behavioral stability           |
+| 🧠 Semantic  | Embeddings          | Meaning-level consistency      |
 
 ---
 
 # 🏗️ 2. Why Multi-Level Uncertainty?
 
-Hallucination is fundamentally an **uncertainty miscalibration problem**.
+Hallucination is fundamentally an uncertainty miscalibration problem.
 
 A model hallucinates when:
 
@@ -47,21 +46,17 @@ $$
 Confidence_{model} \gg Correctness
 $$
 
-Therefore, we need to measure:
+We measure:
 
-1. Internal distribution sharpness
-2. Sequence-level likelihood
-3. Output-level agreement
+1. Distribution sharpness
+2. Sequence likelihood
+3. Output agreement
 4. Semantic stability
-5. Confidence calibration
-
-Each mathematical expression in this project corresponds to one of these failure modes.
+5. Calibration error
 
 ---
 
-# 🔍 3. White-Box Uncertainty (Internal Epistemic Uncertainty)
-
-White-box assumes we have access to logits.
+# 🔍 3. White-Box Uncertainty
 
 ## 3.1 Predictive Entropy
 
@@ -69,16 +64,8 @@ $$
 H(p) = - \sum_{i=1}^{V} p_i \log p_i
 $$
 
-### 🔎 Why use entropy?
-
-Entropy measures **distribution spread**.
-
-* Low entropy → model strongly prefers one token → high certainty
-* High entropy → probability mass is distributed → uncertainty
-
-If the model is unsure internally, entropy increases.
-
-👉 We use entropy to capture **token-level epistemic uncertainty**.
+Low entropy → high certainty
+High entropy → uncertainty
 
 ---
 
@@ -87,29 +74,18 @@ If the model is unsure internally, entropy increases.
 Autoregressive probability:
 
 $$
-P(y) = \prod_{t=1}^{T} P(y_t \mid y_{<t})
+P(y) = \prod_{t=1}^{T} P(y_t \mid y_{t-1})
 $$
 
 Log form:
 
 $$
-\log P(y) = \sum_{t=1}^{T} \log P(y_t \mid y_{<t})
+\log P(y) = \sum_{t=1}^{T} \log P(y_t \mid y_{t-1})
 $$
-
-We use this to measure:
-
-> How probable does the model think this entire answer is?
-
-Low sequence probability = low internal confidence.
 
 ---
 
-# 🟡 4. Gray-Box Uncertainty (Partial Observability)
-
-Gray-box assumes:
-
-* We don’t have logits.
-* We only have token probabilities.
+# 🟡 4. Gray-Box Uncertainty
 
 ## 4.1 Mean Log Probability
 
@@ -117,7 +93,7 @@ $$
 \bar{\ell} = \frac{1}{N} \sum_{i=1}^{N} \log p_i
 $$
 
-Converted back to probability:
+Converted:
 
 $$
 P = e^{\bar{\ell}}
@@ -128,24 +104,23 @@ $$
 ## 4.2 Self-Consistency Weighting
 
 $$
-Confidence = SelfConsistency \times P
+Confidence = SelfConsistency \cdot P
 $$
 
 ---
 
-# ⚫ 5. Black-Box Uncertainty (Deployment-Level Safety)
-
-Assume:
-
-* No logits
-* No probabilities
-* Only final responses
+# ⚫ 5. Black-Box Uncertainty
 
 ## 5.1 Self-Consistency
 
 $$
-Consistency = \frac{\text{Most Common Response}}{\text{Total Responses}}
+Consistency = \frac{C_{max}}{N}
 $$
+
+Where:
+
+* $C_{max}$ = count of most frequent response
+* $N$ = total responses
 
 ---
 
@@ -162,12 +137,12 @@ Where:
 
 ---
 
-# 🧠 6. Semantic Consistency (Meaning-Level Robustness)
+# 🧠 6. Semantic Consistency
 
 Cosine similarity:
 
 $$
-sim(a,b) = \frac{a \cdot b}{|a||b|}
+sim(a,b) = \frac{a \cdot b}{|a| |b|}
 $$
 
 Semantic consistency score:
@@ -187,7 +162,7 @@ $$
 # 🎯 7. Final Hallucination Score
 
 $$
-Score = w_w \cdot White + w_g \cdot Gray + w_b \cdot Black
+Score = w_w White + w_g Gray + w_b Black
 $$
 
 Default weights:
@@ -208,15 +183,14 @@ $$
 
 ---
 
-## 8.2 Expected Calibration Error (ECE)
+## 8.2 Expected Calibration Error
 
 $$
-ECE = \sum_{m=1}^{M} \frac{|B_m|}{N} \left| acc(B_m) - conf(B_m) \right|
+ECE = \sum_{m=1}^{M} \frac{|B_m|}{N}
+\left| acc_m - conf_m \right|
 $$
 
-If ECE is high → model is overconfident.
-
-Hallucination = overconfidence failure.
+High ECE → overconfidence.
 
 ---
 
@@ -233,16 +207,16 @@ $$
 ## AUROC
 
 $$
-AUROC = P(score_{positive} > score_{negative})
+AUROC = P(score_{pos} > score_{neg})
 $$
 
 ---
 
-# 🧩 11. Conceptual Insight
+# 🧩 10. Conceptual Insight
 
 $$
 Hallucination = Overconfidence + Instability + Semantic Drift
 $$
 
----
+
 
