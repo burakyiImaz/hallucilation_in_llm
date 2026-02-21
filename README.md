@@ -1,184 +1,221 @@
 
+
 ---
 
 # 🧠 Hallucination-in-LLM
 
-### Unified White-Box, Gray-Box and Black-Box Hallucination Detection Framework
+### Unified Multi-Level Uncertainty Framework for Hallucination Detection
 
 ---
 
-## 📌 1. Problem Definition
+# 📌 1. Problem Definition
 
-Large Language Models (LLMs) can generate fluent yet factually incorrect outputs.
-This phenomenon is known as:
+Large Language Models (LLMs) generate fluent and coherent text —
+however, fluency ≠ factual correctness.
 
-> **Hallucination**
+This leads to:
 
-Hallucinations pose serious risks in:
+> **Hallucination** — confident but factually incorrect outputs.
 
-* 🏥 Healthcare
-* ⚖️ Legal systems
-* 💰 Finance
-* 🎓 Education
-* 🤖 Autonomous agents
+The key research question of this project:
 
-This project introduces a **multi-perspective uncertainty evaluation pipeline** for hallucination detection using:
+> ❓ *How can we systematically measure uncertainty across different visibility levels of an LLM?*
 
-* 🔍 White-box signals (logits, entropy)
-* 🟡 Gray-box signals (token probabilities)
-* ⚫ Black-box signals (response diversity)
-* 🧠 Semantic consistency (embedding similarity)
-* 📊 Calibration metrics
-* 📈 Statistical reliability analysis
+Instead of relying on a single signal, this project proposes:
 
----
+### 🧩 Multi-Perspective Uncertainty Modeling
 
-# 🏗️ 2. Project Architecture
+We measure hallucination risk from **four epistemic layers**:
 
-```
-User Prompt
-    ↓
-HFModel.generate()
-    ↓
-ModelOutput
-    ↓
-Uncertainty Modules
-    ├── WhiteBoxUncertainty
-    ├── GrayBoxUncertainty
-    ├── BlackBoxUncertainty
-    ├── SemanticUncertainty
-    ↓
-Evaluator
-    ↓
-FinalScore
-    ↓
-HallucinationDecider
-    ↓
-Evaluation Report
-```
+| Layer        | Access Level        | What We Measure                           |
+| ------------ | ------------------- | ----------------------------------------- |
+| 🔍 White-Box | Internal logits     | Model’s internal probability distribution |
+| 🟡 Gray-Box  | Token probabilities | Confidence of generated sequence          |
+| ⚫ Black-Box  | Only outputs        | Behavioral stability                      |
+| 🧠 Semantic  | Embeddings          | Meaning-level consistency                 |
+
+This multi-layer structure allows **robust hallucination detection under different deployment scenarios**.
 
 ---
 
-# 📂 3. Folder Structure
+# 🏗️ 2. Why Multi-Level Uncertainty?
 
-```
-hallucination_in_llm/
-│
-├── model/              # HFModel and output containers
-├── uncertainty/        # White, Gray, Black, Semantic uncertainty
-├── evaluation/         # Scoring, thresholds, reports
-├── decision/           # Final decision logic
-├── pipeline/           # Runner & experiment orchestration
-├── visualization/      # Diagrams & plots
-│
-├── calibration.py      # Brier Score, ECE
-├── stat_metrics.py     # Correlation, AUROC, PR-AUC
-│
-├── pipeline_results_en.csv
-├── pipeline_results_tr.csv
-└── test.ipynb
-```
+Hallucination is fundamentally an **uncertainty miscalibration problem**.
 
----
+A model hallucinates when:
 
-# 🧠 4. Uncertainty Modules (Mathematical Foundations)
+[
+Confidence_{model} \gg Correctness
+]
+
+Therefore, we need to measure:
+
+1. Internal distribution sharpness
+2. Sequence-level likelihood
+3. Output-level agreement
+4. Semantic stability
+5. Confidence calibration
+
+Each mathematical expression in this project corresponds to one of these failure modes.
 
 ---
 
-## 🔍 4.1 White-Box Uncertainty
+# 🔍 3. White-Box Uncertainty (Internal Epistemic Uncertainty)
 
-### (1) Predictive Entropy
+White-box assumes we have access to logits.
 
-For token probability distribution:
+## 3.1 Predictive Entropy
 
 [
 H(p) = - \sum_{i=1}^{V} p_i \log p_i
 ]
 
-Where:
+### 🔎 Why use entropy?
 
-* ( V ) = vocabulary size
-* ( p_i ) = softmax probability
+Entropy measures **distribution spread**.
 
-Higher entropy ⇒ higher uncertainty.
+* Low entropy → model strongly prefers one token → high certainty
+* High entropy → probability mass is distributed → uncertainty
+
+If the model is unsure internally, entropy increases.
+
+👉 We use entropy to capture **token-level epistemic uncertainty**.
+
+This is critical because hallucination often happens when:
+
+* The model picks a high-probability token from a flat distribution.
 
 ---
 
-### (2) Sequence Log Probability
+## 3.2 Sequence Log Probability
 
 [
 \log P(y) = \sum_{t=1}^{T} \log P(y_t \mid y_{<t})
 ]
 
-Sequence probability:
+### 🔎 Why log-probability?
+
+Because language modeling is autoregressive:
 
 [
-P(y) = e^{\log P(y)}
+P(y) = \prod_{t=1}^{T} P(y_t \mid y_{<t})
 ]
 
-Confidence:
+Taking log:
 
 [
-Confidence = P(y)
+\log P(y) = \sum \log P(y_t)
 ]
+
+We use this to measure:
+
+> How probable does the model think this entire answer is?
+
+Low sequence probability = low internal confidence.
+
+This gives a **global confidence estimate**, not just token-level.
 
 ---
 
-## 🟡 4.2 Gray-Box Uncertainty
+# 🟡 4. Gray-Box Uncertainty (Partial Observability)
 
-### Mean Log Probability
+Gray-box assumes:
+
+* We don’t have logits.
+* We only have token probabilities.
+
+## 4.1 Mean Log Probability
 
 [
 \bar{\ell} = \frac{1}{N} \sum_{i=1}^{N} \log p_i
 ]
 
-Converted to probability:
+### 🔎 Why average?
+
+Longer sequences naturally have lower joint probability.
+
+Averaging removes length bias.
+
+We then exponentiate:
 
 [
 P = e^{\bar{\ell}}
 ]
 
-Final Gray-Box Confidence:
+This gives a normalized confidence measure.
+
+---
+
+## 4.2 Self-Consistency Weighting
 
 [
 Confidence = SelfConsistency \times P
 ]
 
+Why multiply?
+
+Because probability alone is insufficient.
+
+If multiple generations disagree,
+confidence should decrease.
+
+This bridges gray-box and behavioral stability.
+
 ---
 
-## ⚫ 4.3 Black-Box Uncertainty
+# ⚫ 5. Black-Box Uncertainty (Deployment-Level Safety)
 
-### Self-Consistency
+Assume:
+
+* No logits
+* No probabilities
+* Only final responses
+
+This simulates API-only environments (e.g., production LLMs).
+
+---
+
+## 5.1 Self-Consistency
 
 [
 Consistency = \frac{\text{Most Common Response}}{\text{Total Responses}}
 ]
 
+### 🔎 Why?
+
+If the model answers differently each time,
+it signals instability.
+
+Hallucination often correlates with low agreement across samples.
+
 ---
 
-### Response Entropy
+## 5.2 Response Entropy
 
 [
 H = - \sum_{i=1}^{K} p_i \log p_i
 ]
 
-Where:
+Measures distribution of responses.
 
-* ( K ) = number of unique responses
+High entropy → disagreement
+Low entropy → stable behavior
 
-Higher entropy ⇒ higher disagreement.
+This captures **behavioral epistemic uncertainty**.
 
 ---
 
-## 🧠 4.4 Semantic Consistency
+# 🧠 6. Semantic Consistency (Meaning-Level Robustness)
 
-### Cosine Similarity
+Surface text may differ but meaning can remain stable.
+
+We compute cosine similarity:
 
 [
 sim(a,b) = \frac{a \cdot b}{|a||b|}
 ]
 
-### Semantic Consistency Score
+Then average:
 
 [
 S = \frac{1}{N} \sum_{i<j} sim(e_i, e_j)
@@ -190,156 +227,132 @@ Uncertainty:
 U = 1 - S
 ]
 
+### 🔎 Why embeddings?
+
+Because hallucination may not be visible in lexical form.
+
+Semantic instability reveals deeper inconsistency.
+
+This captures **representation-level uncertainty**.
+
 ---
 
-# 🎯 5. Final Hallucination Score
+# 🎯 7. Final Hallucination Score
 
 [
 Score = w_w \cdot White + w_g \cdot Gray + w_b \cdot Black
 ]
 
+### Why weighted combination?
+
+Because:
+
+* White-box captures internal epistemics.
+* Gray-box captures token-level confidence.
+* Black-box captures behavioral stability.
+
+Each sees a different failure mode.
+
 Default weights:
 
-* White: **0.4**
-* Gray: **0.3**
-* Black: **0.3**
+| Module | Weight | Rationale                    |
+| ------ | ------ | ---------------------------- |
+| White  | 0.4    | Most direct epistemic signal |
+| Gray   | 0.3    | Sequence confidence          |
+| Black  | 0.3    | Deployment realism           |
+
+This creates a **risk-aware unified score**.
 
 ---
 
-# 📊 6. Calibration Metrics
+# 📊 8. Calibration Theory
 
-## Brier Score
+Hallucination is not only about uncertainty —
+it is about **miscalibration**.
+
+## 8.1 Brier Score
 
 [
 BS = \frac{1}{N} \sum_{i=1}^{N} (p_i - y_i)^2
 ]
 
-Lower is better.
+Measures:
+
+> Are predicted confidences numerically aligned with reality?
+
+Lower = better calibrated.
 
 ---
 
-## Expected Calibration Error (ECE)
+## 8.2 Expected Calibration Error (ECE)
 
 [
 ECE = \sum_{m=1}^{M} \frac{|B_m|}{N} | acc(B_m) - conf(B_m) |
 ]
 
-Measures the gap between confidence and actual accuracy.
+Measures gap between:
+
+* Confidence
+* True accuracy
+
+If ECE is high → model is overconfident.
+
+Hallucination = overconfidence failure.
 
 ---
 
-# 📈 7. Statistical Metrics
+# 📈 9. Statistical Validation
 
-### Pearson Correlation
+## Pearson Correlation
 
 [
 r = \frac{cov(X,Y)}{\sigma_X \sigma_Y}
 ]
 
-### AUROC
+Checks:
 
-Probability that a randomly chosen positive example is ranked higher than a randomly chosen negative one.
-
----
-
-# 🚀 8. Installation
-
-```bash
-pip install torch transformers sentence-transformers numpy scipy scikit-learn matplotlib seaborn networkx
-```
+> Does uncertainty correlate with actual errors?
 
 ---
 
-# 🧪 9. Example Usage
+## AUROC
 
-```python
-from model.hf_model import HFModel
-from pipeline.runner import PipelineRunner
-from evaluation.evaluator import Evaluator
-from decision.final_score import FinalScore
-from decision.hallucination_decider import HallucinationDecider
-from uncertainty.black_uncertainty import BlackBoxUncertainty
+Probability that a hallucinated sample gets higher uncertainty score than a correct sample.
 
-model = HFModel("gpt2")
-
-uncertainty_modules = {
-    "black": lambda output: BlackBoxUncertainty(output.responses)
-}
-
-evaluator = Evaluator(FinalScore())
-decider = HallucinationDecider({"hallucination": 0.6})
-
-runner = PipelineRunner(model, uncertainty_modules, evaluator, decider)
-
-result = runner.run("What is the capital of France?")
-print(result)
-```
+Measures ranking quality.
 
 ---
 
-# 🧪 10. Running Experiments
+# 🎓 10. Research Contributions
 
-Use:
+This project contributes:
 
-```
-pipeline/experiment.py
-```
+* Multi-layer epistemic modeling
+* Calibration-aware hallucination scoring
+* Deployment-adaptive uncertainty modules
+* Statistical reliability validation
+* Modular research architecture
 
-Provide:
+This is suitable for:
 
-* Prompt list
-* Ground truth labels
-
-Evaluate with:
-
-* `stat_metrics.py`
-* `calibration.py`
-
----
-
-# 📊 11. Visualization
-
-```python
-from visualization.visualization_manager import VisualizationManager
-VisualizationManager().generate_all()
-```
-
-Outputs:
-
-* Class diagram
-* Token flow
-* Logit heatmaps
-* API simulations
+* 📄 Academic paper
+* 🎓 Master's thesis
+* 🇹🇷 TÜBİTAK 2209 / 1001 project
+* 🤖 Production AI risk system
 
 ---
 
-# 🎓 12. Academic Value
+# 🧩 11. Conceptual Insight
 
-This framework demonstrates:
+Hallucination is not randomness.
 
-* Multi-level uncertainty modeling
-* Probabilistic calibration
-* Statistical validation
-* Risk-aware LLM deployment design
-* Modular research-grade architecture
+It is:
 
-Potential extensions:
+[
+Overconfidence + Instability + Semantic Drift
+]
 
-* Research paper
-* TÜBİTAK project
-* Master's thesis
-* Production-grade risk system
-
----
-
-# 🧩 13. Future Extensions
-
-* Bayesian ensembling
-* Monte Carlo dropout
-* Retrieval-based verification
-* Knowledge-grounded validation
-* RLHF-aware calibration
-* Adaptive thresholding
+This framework measures all three.
 
 ---
 
