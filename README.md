@@ -66,9 +66,8 @@ White-box assumes we have access to logits.
 
 ## 3.1 Predictive Entropy
 
-[
-H(p) = - \sum_{i=1}^{V} p_i \log p_i
-]
+H(p) = - Σ (p_i * log(p_i))      for i = 1 ... V
+
 
 ### 🔎 Why use entropy?
 
