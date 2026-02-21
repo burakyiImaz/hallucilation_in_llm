@@ -146,8 +146,9 @@ sim(a,b) = \frac{a \cdot b}{|a| |b|}
 $$
 
 Semantic consistency score:
+
 $$
-S = \frac{2}{N(N-1)} \sum_{i=1}^{N} \sum_{j=i+1}^{N} sim(e_i, e_j)
+S = \frac{1}{M} \sum_{k=1}^{M} sim_k
 $$
 
 Uncertainty:
