@@ -111,13 +111,13 @@ $$
 is modeled autoregressively:
 
 $$
-P(y) = \prod_{t=1}^{T} P(y_t \mid y_{<t})
+P(y) = \prod_{t=1}^{T} P(y_t \mid y_{1:t-1})
 $$
 
 Because probabilities are small and products become numerically unstable, we compute in log-space:
 
 $$
-\log P(y) = \sum_{t=1}^{T} \log P(y_t \mid y_{<t})
+\log P(y) = \sum_{t=1}^{T} \log P(y_t \mid y_{1:t-1})
 $$
 
 ### Why Log?
