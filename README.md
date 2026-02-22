@@ -43,9 +43,9 @@ Hallucination is fundamentally a **miscalibrated confidence problem**.
 
 We formalize this idea as:
 
-[
+$$
 Confidence_{model} \gg Correctness
-]
+$$
 
 In other words, hallucination occurs when the model’s predicted confidence significantly exceeds its actual probability of being correct.
 
@@ -66,21 +66,23 @@ Each layer captures a different failure mode of the model.
 
 White-box access assumes we can inspect the model’s internal logits before sampling.
 
+---
+
 ## 3.1 Predictive Entropy
 
 LLMs output a probability distribution over the vocabulary:
 
-[
+$$
 p = (p_1, p_2, ..., p_V)
-]
+$$
 
-where ( V ) is vocabulary size.
+where $V$ is vocabulary size.
 
 We measure uncertainty using **Shannon entropy**:
 
-[
+$$
 H(p) = - \sum_{i=1}^{V} p_i \log p_i
-]
+$$
 
 ### Interpretation
 
@@ -91,9 +93,6 @@ Entropy quantifies the **spread of a probability distribution**.
 
 Entropy measures **distribution sharpness**.
 
-A sharply peaked distribution indicates strong internal belief.
-A flat distribution indicates internal indecision.
-
 Thus:
 
 * High entropy → internal uncertainty
@@ -103,25 +102,31 @@ Thus:
 
 ## 3.2 Sequence Log Probability
 
-A generated sequence ( y = (y_1, ..., y_T) ) is modeled autoregressively:
+A generated sequence
 
-[
+$$
+y = (y_1, ..., y_T)
+$$
+
+is modeled autoregressively:
+
+$$
 P(y) = \prod_{t=1}^{T} P(y_t \mid y_{<t})
-]
+$$
 
 Because probabilities are small and products become numerically unstable, we compute in log-space:
 
-[
+$$
 \log P(y) = \sum_{t=1}^{T} \log P(y_t \mid y_{<t})
-]
+$$
 
 ### Why Log?
 
 * Prevents numerical underflow
 * Converts multiplication into summation
-* Easier gradient computation
+* Enables stable optimization
 
-Low log-probability implies that the model internally assigns weak likelihood to the generated sequence.
+Low log-probability implies weak internal support for the generated sequence.
 
 ---
 
@@ -129,70 +134,65 @@ Low log-probability implies that the model internally assigns weak likelihood to
 
 Gray-box access assumes we have token probabilities but not raw logits.
 
+---
+
 ## 4.1 Mean Log Probability
 
 Longer sequences naturally have lower joint probability.
-
 To normalize for length:
 
-[
+$$
 \bar{\ell} = \frac{1}{N} \sum_{i=1}^{N} \log p_i
-]
+$$
 
 This provides a **length-invariant confidence measure**.
 
-We can convert back:
+We convert back:
 
-[
+$$
 P = e^{\bar{\ell}}
-]
+$$
 
-This gives an interpretable average per-token confidence.
+This represents the average per-token probability.
 
 ---
 
 ## 4.2 Self-Consistency Weighting
 
-We define behavioral stability via repeated sampling.
+Behavioral stability is defined via repeated sampling:
 
-Let:
-
-[
-Confidence = SelfConsistency \cdot P
-]
-
-Where:
-
-[
+$$
 SelfConsistency = \frac{C_{max}}{N}
-]
+$$
 
-If the model repeatedly produces the same answer, it indicates internal stability.
+Combined confidence:
 
-Thus, confidence must satisfy:
+$$
+Confidence = SelfConsistency \cdot P
+$$
+
+Confidence must satisfy:
 
 * High internal probability
 * High behavioral agreement
 
-Both conditions reduce hallucination likelihood.
+Both reduce hallucination likelihood.
 
 ---
 
 # 5. Black-Box Uncertainty
 
-When only outputs are observable, we rely purely on behavioral statistics.
+When only outputs are observable, we rely on behavioral statistics.
+
+---
 
 ## 5.1 Self-Consistency
 
-Repeated sampling gives multiple responses.
+Repeated sampling gives multiple responses:
 
-Let:
-
-[
+$$
 Consistency = \frac{C_{max}}{N}
-]
-
-This measures how often the most common response appears.
+$$
 
 Low consistency indicates instability.
 
@@ -200,18 +200,16 @@ Low consistency indicates instability.
 
 ## 5.2 Response Entropy
 
-Let ( K ) be number of unique responses.
+Let $K$ be the number of unique responses.
 
-[
+$$
 H = - \sum_{i=1}^{K} p_i \log p_i
-]
+$$
 
-Where ( p_i ) is the frequency of response ( i ).
+Where $p_i$ is the frequency of response $i$.
 
-High entropy → behavioral uncertainty.
-Low entropy → stable output distribution.
-
-This is a black-box analogue of predictive entropy.
+High entropy → behavioral uncertainty
+Low entropy → stable outputs
 
 ---
 
@@ -221,33 +219,35 @@ Surface similarity is insufficient. Two responses may differ syntactically but c
 
 We embed responses into vector space:
 
-[
+$$
 a, b \in \mathbb{R}^d
-]
+$$
+
+---
 
 ## Cosine Similarity
 
-[
+$$
 sim(a,b) = \frac{a \cdot b}{|a| |b|}
-]
+$$
 
 * 1 → identical meaning
-* 0 → orthogonal (unrelated)
+* 0 → unrelated
 * -1 → opposite
 
-We define semantic consistency:
+Semantic consistency:
 
-[
+$$
 S = \frac{1}{M} \sum_{k=1}^{M} sim_k
-]
+$$
 
-Then semantic uncertainty:
+Semantic uncertainty:
 
-[
+$$
 U = 1 - S
-]
+$$
 
-This captures **semantic drift** — meaning-level instability.
+This captures **semantic drift**.
 
 ---
 
@@ -255,26 +255,23 @@ This captures **semantic drift** — meaning-level instability.
 
 We integrate signals:
 
-[
-Score = w_w White + w_g Gray + w_b Black
-]
+$$
+Score = w_w \cdot White + w_g \cdot Gray + w_b \cdot Black
+$$
 
-With:
+Subject to:
 
-[
+$$
 w_w + w_g + w_b = 1
-]
+$$
 
-This is a weighted linear combination.
-
-### Why Linear?
+This weighted linear combination is:
 
 * Interpretable
 * Stable
-* Allows weight tuning
-* Compatible with logistic regression extension
+* Optimizable
 
-Weights can be optimized via validation.
+Weights can be tuned via validation.
 
 ---
 
@@ -282,18 +279,18 @@ Weights can be optimized via validation.
 
 Confidence should align with empirical accuracy.
 
+---
+
 ## 8.1 Brier Score
 
-[
-BS = \frac{1}{N} \sum (p_i - y_i)^2
-]
+$$
+BS = \frac{1}{N} \sum_{i=1}^{N} (p_i - y_i)^2
+$$
 
 Where:
 
-* ( p_i ) = predicted confidence
-* ( y_i \in {0,1} )
-
-Measures squared deviation from truth.
+* $p_i$ = predicted confidence
+* $y_i \in {0,1}$
 
 Lower is better.
 
@@ -301,49 +298,41 @@ Lower is better.
 
 ## 8.2 Expected Calibration Error (ECE)
 
-Partition predictions into bins.
+Partition predictions into bins $B_m$:
 
-For bin ( B_m ):
-
-[
-ECE = \sum_{m=1}^{M} \frac{|B_m|}{N} | acc_m - conf_m |
-]
+$$
+ECE = \sum_{m=1}^{M} \frac{|B_m|}{N}
+\left| acc_m - conf_m \right|
+$$
 
 Where:
 
-* ( acc_m ) = empirical accuracy
-* ( conf_m ) = mean predicted confidence
+* $acc_m$ = empirical accuracy
+* $conf_m$ = mean predicted confidence
 
-High ECE indicates overconfidence or underconfidence.
+High ECE → overconfidence or underconfidence.
 
 ---
 
 # 9. Statistical Validation
 
+---
+
 ## Pearson Correlation
 
-[
+$$
 r = \frac{cov(X,Y)}{\sigma_X \sigma_Y}
-]
+$$
 
-Measures linear correlation between uncertainty score and true error.
-
-Ideal hallucination detector:
-
-* High uncertainty when wrong
-* Low uncertainty when correct
-
-Thus strong positive correlation with error.
+Measures correlation between uncertainty and true error.
 
 ---
 
 ## AUROC
 
-[
+$$
 AUROC = P(score_{hallucination} > score_{correct})
-]
-
-Interprets the system as a ranking function.
+$$
 
 * 0.5 → random
 * 1.0 → perfect discrimination
@@ -354,17 +343,15 @@ Interprets the system as a ranking function.
 
 We propose:
 
-[
-Hallucination = Overconfidence + Instability + Semantic Drift
-]
+$$
+Hallucination = Overconfidence + Instability + SemanticDrift
+$$
 
 Where:
 
 * Overconfidence → low entropy but wrong
 * Instability → inconsistent outputs
 * Semantic Drift → meaning inconsistency
-
-This decomposition unifies probabilistic and behavioral views of uncertainty.
 
 ---
 
@@ -383,3 +370,4 @@ It integrates:
 Thus providing a principled and extensible foundation for hallucination detection.
 
 ---
+
