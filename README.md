@@ -371,3 +371,315 @@ Thus providing a principled and extensible foundation for hallucination detectio
 
 ---
 
+# 11. Practical Evaluation Protocol
+
+This section explains **how to analyze the generated CSV metrics** and how researchers should interpret each uncertainty component.
+
+Our exported CSV includes:
+
+```
+PROMPT
+RESPONSE
+Whitebox_Uncertainty
+Graybox_Uncertainty
+Blackbox_Uncertainty
+Semantic_Uncertainty
+Final_Score
+Decision
+Semantic_Similarity
+Pearson_Corr
+Spearman_Corr
+AUROC
+PR_AUC
+Brier_Score
+ECE
+```
+
+---
+
+## 11.1 Row-Level Interpretation (Single Example Analysis)
+
+For each prompt-response pair, inspect:
+
+### 1️⃣ Whitebox_Uncertainty
+
+High value → internal distribution is flat → epistemic uncertainty.
+
+If:
+
+* Low entropy
+* But answer is wrong
+
+This indicates **overconfidence failure**.
+
+---
+
+### 2️⃣ Graybox_Uncertainty
+
+Measures average per-token log probability.
+
+If:
+
+* Low mean log probability → weak internal support
+* High probability but wrong → miscalibration
+
+---
+
+### 3️⃣ Blackbox_Uncertainty
+
+Based on repeated sampling.
+
+If:
+
+* Low self-consistency → behavioral instability
+* High entropy across responses → model disagreement
+
+Instability often correlates with hallucination risk.
+
+---
+
+### 4️⃣ Semantic_Uncertainty
+
+Defined as:
+
+```
+U = 1 - S
+```
+
+Where S is average cosine similarity between response embeddings.
+
+If:
+
+* Low semantic similarity → meaning drift
+* High drift → epistemic instability
+
+---
+
+### 5️⃣ Final_Score
+
+Computed as weighted integration:
+
+```
+Score = w_w White + w_g Gray + w_b Black
+```
+
+Interpretation:
+
+* Low score → reliable
+* High score → hallucination risk
+
+Decision column applies a threshold:
+
+```
+Decision = 1 if Score > tau else 0
+```
+
+---
+
+# 12. Distribution-Level Analysis
+
+Beyond individual examples, analyze metric distributions.
+
+---
+
+## 12.1 Histogram Inspection
+
+Plot distributions of:
+
+* Whitebox_Uncertainty
+* Final_Score
+* Semantic_Uncertainty
+
+Look for:
+
+* Bimodality (hallucinated vs correct clusters)
+* Heavy tails (extreme uncertainty cases)
+
+---
+
+## 12.2 Hallucination Separation
+
+If ground truth labels exist:
+
+Compare:
+
+```
+mean_uncertainty(hallucinated)
+vs
+mean_uncertainty(correct)
+```
+
+A valid metric should satisfy:
+
+```
+mean_hallucinated > mean_correct
+```
+
+---
+
+# 13. Correlation Analysis
+
+## 13.1 Pearson Correlation
+
+Measures linear relation between uncertainty and error.
+
+Interpretation:
+
+* r > 0.6 → strong linear relation
+* 0.4–0.6 → moderate
+* < 0.3 → weak
+
+---
+
+## 13.2 Spearman Correlation
+
+Measures monotonic relationship.
+
+Important when relationship is non-linear.
+
+If:
+
+Spearman > Pearson
+
+→ relationship is monotonic but non-linear.
+
+---
+
+# 14. Classification Performance
+
+## 14.1 AUROC
+
+Measures probability that a hallucinated sample receives a higher score than a correct one.
+
+Interpretation:
+
+* 0.5 → random
+* 0.7 → acceptable
+* 0.8 → strong
+* > 0.9 → excellent
+
+Target: AUROC ≥ 0.8
+
+---
+
+## 14.2 PR-AUC
+
+Important when dataset is imbalanced.
+
+If hallucinations are rare, PR-AUC is more informative than AUROC.
+
+---
+
+# 15. Calibration Analysis
+
+Hallucination is fundamentally an overconfidence problem.
+
+Thus calibration metrics are critical.
+
+---
+
+## 15.1 Brier Score
+
+```
+BS = mean( (p - y)^2 )
+```
+
+Lower is better.
+
+Measures probability accuracy.
+
+---
+
+## 15.2 Expected Calibration Error (ECE)
+
+Measures mismatch between:
+
+* Predicted confidence
+* Empirical accuracy
+
+Interpretation:
+
+* < 0.05 → well calibrated
+* 0.05–0.1 → acceptable
+* > 0.1 → overconfident model
+
+High AUROC but high ECE indicates:
+
+> The model separates well but is miscalibrated.
+
+---
+
+# 16. Layer Ablation Study
+
+To justify the multi-level framework, perform ablation:
+
+| Configuration | AUROC |
+| ------------- | ----- |
+| White only    |       |
+| Gray only     |       |
+| Black only    |       |
+| White + Gray  |       |
+| All Layers    |       |
+
+If:
+
+```
+AUROC(all) > AUROC(any single layer)
+```
+
+Then multi-level integration is validated.
+
+This is essential for publication-level evaluation.
+
+---
+
+# 17. Failure Mode Analysis
+
+Manually inspect:
+
+* High confidence + wrong → overconfidence
+* Low consistency + high entropy → instability
+* Low semantic similarity → meaning drift
+
+This helps decompose hallucination into:
+
+```
+Hallucination = Overconfidence + Instability + Semantic Drift
+```
+
+---
+
+# 18. Reproducibility Notes
+
+To ensure stable evaluation:
+
+* Fix random seed for sampling
+* Use consistent temperature
+* Keep number of samples constant
+* Normalize uncertainty scores if combining layers
+
+---
+
+# 19. Research Implications
+
+This framework demonstrates that hallucination is not binary.
+
+Instead, it is a structured epistemic failure across:
+
+* Distributional space
+* Sequence probability space
+* Behavioral sampling space
+* Representation space
+* Calibration space
+
+By integrating these layers, the system provides:
+
+* Interpretable signals
+* Modular extensibility
+* Model-agnostic deployment compatibility
+* Theoretical grounding in information theory and calibration theory
+
+---
+
+
+
