@@ -59,8 +59,9 @@ class GrayBoxUncertainty:
 
         if self.log_probs is not None:
             mean_log_p = self.mean_log_probability()
-            likelihood = math.exp(mean_log_p)  # convert log prob to prob
-            return consistency * likelihood
+            scaled_conf = 1 / (1 + np.exp(-mean_log_p))
+
+            return consistency * scaled_conf
 
         return consistency
 

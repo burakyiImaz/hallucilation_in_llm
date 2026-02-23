@@ -16,6 +16,8 @@ class WhiteBoxUncertainty:
         self.token_ids = token_ids
         self.text_responses = text_responses
 
+# /workspaces/hallucilation_in_llm/uncertainty/whitebox_uncertainty.py
+
     def predictive_entropy(self):
 
         if self.scores is None:
@@ -24,15 +26,16 @@ class WhiteBoxUncertainty:
         sample_entropies = []
 
         for sample_logits in self.scores:
-            # sample_logits: (seq_len, vocab)
 
             probs = F.softmax(sample_logits, dim=-1)
             log_probs = F.log_softmax(sample_logits, dim=-1)
 
-            token_entropy = -(probs * log_probs).sum(dim=-1)  # (seq_len,)
+            token_entropy = -(probs * log_probs).sum(dim=-1)
             sample_entropies.append(token_entropy.mean())
 
-        return torch.stack(sample_entropies).mean().item()
+        entropy_value = torch.stack(sample_entropies).mean().item()
+
+        return float(max(entropy_value, 0.0))
 
 
     def sequence_log_probability(self):
