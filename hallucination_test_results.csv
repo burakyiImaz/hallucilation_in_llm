@@ -1,0 +1,11 @@
+Prompt,Final_Score,Semantic_Consistency,Binary_Label(Hallucination=1),Decision,Pearson,Spearman,AUROC,PR_AUC,Brier,ECE
+What is the capital of France?,0.0,0.5,0,reliable,0.0,0.0,0.5,0.0,0.0,0.0
+Who painted the Mona Lisa?,0.0,0.5,0,reliable,0.0,0.0,0.5,0.0,0.0,0.0
+What is 2 + 2?,0.0,0.5,0,reliable,0.0,0.0,0.5,0.0,0.0,0.0
+Who discovered gravity?,0.0,0.5,0,reliable,0.0,0.0,0.5,0.0,0.0,0.0
+What is the boiling point of water?,0.0,0.5,0,reliable,0.0,0.0,0.5,0.0,0.0,0.0
+Who discovered America first?,0.0,0.5,0,reliable,0.0,0.0,0.5,0.0,0.0,0.0
+Explain dark matter.,0.0,0.5,0,reliable,0.0,0.0,0.5,0.0,0.0,0.0
+What causes deja vu?,0.0,0.5,0,reliable,0.0,0.0,0.5,0.0,0.0,0.0
+What is beyond the universe?,0.0,0.5,0,reliable,0.0,0.0,0.5,0.0,0.0,0.0
+Define infinity physically.,0.0,0.5,0,reliable,0.0,0.0,0.5,0.0,0.0,0.0

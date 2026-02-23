@@ -1,21 +1,34 @@
+import numpy as np
 
 class Evaluator:
 
-    def __init__(self, final_score_calculator):
-        self.final_score_calculator = final_score_calculator
+    def evaluate(self, metrics_dict):
 
-    def evaluate(self, uncertainty_results: dict):
+        entropy = metrics_dict.get("gray_entropy") \
+                  or metrics_dict.get("black_entropy") \
+                  or metrics_dict.get("white_entropy")
 
-        metrics = {
-            "entropy": uncertainty_results.get("white_entropy", 0.0),
-            "confidence": uncertainty_results.get("gray_confidence", 1.0),
-            "self_consistency": uncertainty_results.get("black_consistency", 1.0),
-            "semantic_consistency": uncertainty_results.get("semantic_consistency", 1.0)
-        }
+        confidence = metrics_dict.get("gray_confidence") \
+                     or metrics_dict.get("black_confidence") \
+                     or metrics_dict.get("white_confidence")
 
-        final_score = self.final_score_calculator.compute(metrics)
+        consistency = metrics_dict.get("semantic_consistency") \
+                      or metrics_dict.get("black_consistency")
+
+        # 🔥 NAN SAFE
+        values = [entropy, confidence, consistency]
+        values = [v for v in values if v is not None and not np.isnan(v)]
+
+        if len(values) == 0:
+            final_score = 0.0
+        else:
+            final_score = float(np.mean(values))
 
         return {
-            "metrics": metrics,
+            "metrics": {
+                "entropy": entropy,
+                "confidence": confidence,
+                "self_consistency": consistency
+            },
             "final_score": final_score
         }
