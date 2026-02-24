@@ -5,10 +5,10 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 
 class ModelOutput:
     def __init__(self, responses, token_ids, logits, log_probs):
-        self.responses = responses
-        self.token_ids = token_ids
-        self.logits = logits
-        self.log_probs = log_probs
+        self.responses = responses          # List[str]
+        self.token_ids = token_ids          # List[List[int]]
+        self.logits = logits                # List[Tensor(new_tokens, vocab)]
+        self.log_probs = log_probs          # List[List[float]]
 
 
 class HFModel:
@@ -55,44 +55,40 @@ class HFModel:
         logits_list = []
         log_probs_list = []
 
-        # Decode responses
         for i in range(num_samples):
-            seq = sequences[i]
-            text = self.tokenizer.decode(seq, skip_special_tokens=True)
+            # sadece generated token kısmını alıyoruz
+            generated_tokens = sequences[i][prompt_length:]
+            token_ids_list.append(generated_tokens.tolist())
+
+            text = self.tokenizer.decode(generated_tokens, skip_special_tokens=True)
             responses.append(text)
-            token_ids_list.append(seq.tolist())
 
-        # Handle whitebox signals
+        # Whitebox ve log_probs hesaplama
         if scores is not None and len(scores) > 0:
-
-            # (new_tokens, batch, vocab)
-            stacked_scores = torch.stack(scores, dim=0)
-            # (batch, new_tokens, vocab)
-            stacked_scores = stacked_scores.permute(1, 0, 2)
+            stacked_scores = torch.stack(scores, dim=0)           # (new_tokens, batch, vocab)
+            stacked_scores = stacked_scores.permute(1, 0, 2)      # (batch, new_tokens, vocab)
 
             for i in range(num_samples):
+                sample_logits = stacked_scores[i]                # (new_tokens, vocab)
+                gen_tokens = sequences[i][prompt_length:]
+                gen_tokens = gen_tokens[:sample_logits.size(0)]  # alignment
 
-                sample_logits = stacked_scores[i]  # (new_tokens, vocab)
+                # Eğer token sayısı < logits boyutu ise truncate et
+                if len(gen_tokens) < sample_logits.size(0):
+                    sample_logits = sample_logits[:len(gen_tokens)]
+
                 logits_list.append(sample_logits.detach().cpu())
 
                 log_probs = F.log_softmax(sample_logits, dim=-1)
-
-                # IMPORTANT FIX: only generated tokens
-                generated_tokens = sequences[i][prompt_length:]
-                generated_tokens = generated_tokens[:sample_logits.shape[0]]
-
-                token_log_probs = log_probs.gather(
-                    1,
-                    generated_tokens.unsqueeze(-1)
-                ).squeeze(-1)
-
-                log_probs_list.append(
-                    token_log_probs.detach().cpu().tolist()
-                )
+                token_log_probs = log_probs.gather(1, gen_tokens.unsqueeze(-1)).squeeze(-1)
+                log_probs_list.append(token_log_probs.detach().cpu().tolist())
 
         else:
-            logits_list = None
-            log_probs_list = None
+            # Eğer score yoksa dummy değerler ile whitebox kırılmasın
+            vocab_size = self.model.config.vocab_size
+            for _ in range(num_samples):
+                logits_list.append(torch.zeros((1, vocab_size)))
+                log_probs_list.append([0.0])
 
         return ModelOutput(
             responses=responses,
