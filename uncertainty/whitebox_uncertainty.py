@@ -7,59 +7,52 @@ import math
 class WhiteBoxUncertainty:
 
     def __init__(self, scores, token_ids, text_responses):
-        """
-        scores: List[Tensor(seq_len, vocab)]
-        token_ids: List[List[int]]
-        text_responses: List[str]
-        """
         self.scores = scores
         self.token_ids = token_ids
         self.text_responses = text_responses
 
-
-    # -------------------------------------------------
-    # 1️⃣ Predictive Entropy (Numerically Stable)
-    # -------------------------------------------------
+    # ============================================================
+    # Predictive Entropy
+    # ============================================================
     def predictive_entropy(self):
 
-        if not self.scores:
+        if self.scores is None or len(self.scores) == 0:
             return 0.0
 
-        sample_entropies = []
+        entropies = []
 
         for sample_logits in self.scores:
 
             if sample_logits is None or sample_logits.numel() == 0:
                 continue
 
-            # log_softmax daha stabil
-            log_probs = F.log_softmax(sample_logits, dim=-1)
-            probs = torch.exp(log_probs)
+            logits = sample_logits.float()
+
+            logits = logits - logits.max(dim=-1, keepdim=True).values
+
+            exp_logits = torch.exp(logits)
+            probs = exp_logits / exp_logits.sum(dim=-1, keepdim=True)
+
+            log_probs = torch.log(probs + 1e-12)
 
             token_entropy = -(probs * log_probs).sum(dim=-1)
 
-            if torch.isnan(token_entropy).any():
-                continue
+            entropies.append(token_entropy.mean())
 
-            sample_entropies.append(token_entropy.mean())
-
-        if len(sample_entropies) == 0:
+        if not entropies:
             return 0.0
 
-        entropy_value = torch.stack(sample_entropies).mean().item()
+        entropy = torch.stack(entropies).mean()
 
-        if math.isnan(entropy_value) or math.isinf(entropy_value):
+        if torch.isnan(entropy) or torch.isinf(entropy):
             return 0.0
 
-        return float(max(entropy_value, 0.0))
+        return float(entropy.item())
 
 
-    # -------------------------------------------------
-    # 2️⃣ Mean Log Probability (Length Normalized)
-    # -------------------------------------------------
     def sequence_log_probability(self):
 
-        if not self.scores:
+        if self.scores is None or len(self.scores) == 0:
             return 0.0
 
         sequence_log_probs = []
@@ -69,62 +62,81 @@ class WhiteBoxUncertainty:
             if sample_logits is None or sample_logits.numel() == 0:
                 continue
 
-            log_softmax = F.log_softmax(sample_logits, dim=-1)
+            log_probs = F.log_softmax(sample_logits, dim=-1)
 
             seq_len = sample_logits.shape[0]
+
+            # Only generated tokens
             chosen_tokens = token_seq[-seq_len:]
 
             token_log_probs = []
 
             for t in range(seq_len):
+
                 token_id = chosen_tokens[t]
 
-                if token_id >= log_softmax.shape[-1]:
+                if token_id >= log_probs.shape[-1]:
                     continue
 
-                token_log_probs.append(log_softmax[t, token_id])
+                token_log_probs.append(log_probs[t, token_id])
 
-            if len(token_log_probs) == 0:
+            if not token_log_probs:
                 continue
 
-            # 🔥 length normalized (çok önemli!)
+            # 🔥 length normalized
             seq_log_prob = torch.stack(token_log_probs).mean()
             sequence_log_probs.append(seq_log_prob)
 
-        if len(sequence_log_probs) == 0:
+        if not sequence_log_probs:
             return 0.0
 
         mean_log_prob = torch.stack(sequence_log_probs).mean()
 
-        if torch.isnan(mean_log_prob):
+        if torch.isnan(mean_log_prob) or torch.isinf(mean_log_prob):
             return 0.0
 
-        return mean_log_prob.item()
+        return float(mean_log_prob.item())
 
-
-    # -------------------------------------------------
-    # 3️⃣ Confidence (Sigmoid Mapping)
-    # -------------------------------------------------
+    # ============================================================
+    # 3️⃣ Confidence (Proper Probability)
+    # ============================================================
     def confidence(self):
         """
-        Log-prob → bounded confidence score
-        exp(log_prob) çok küçülür.
-        Bunun yerine sigmoid kullanıyoruz.
+        Convert mean log-probability to probability space.
+        Since log_prob is length-normalized, exp(log_prob) is stable.
         """
+
         log_p = self.sequence_log_probability()
 
-        # Sigmoid mapping
-        confidence = 1 / (1 + math.exp(-log_p))
+        confidence = math.exp(log_p)
 
         if math.isnan(confidence) or math.isinf(confidence):
             return 0.0
 
+        # clamp to [0,1]
+        confidence = max(0.0, min(1.0, confidence))
+
         return float(confidence)
 
+    # ============================================================
+    # 4️⃣ Perplexity
+    # ============================================================
+    def perplexity(self):
 
-    # -------------------------------------------------
-    # 4️⃣ Self Consistency
-    # -------------------------------------------------
+        log_p = self.sequence_log_probability()
+
+        try:
+            ppl = math.exp(-log_p)
+        except OverflowError:
+            return float("inf")
+
+        if math.isnan(ppl) or math.isinf(ppl):
+            return float("inf")
+
+        return float(ppl)
+
+
+
     def self_consistency(self):
 
         if not self.text_responses:
@@ -133,24 +145,27 @@ class WhiteBoxUncertainty:
         normalized = [t.strip().lower() for t in self.text_responses]
         counts = Counter(normalized)
 
-        if len(counts) == 0:
+        if not counts:
             return 0.0
 
         most_common = counts.most_common(1)[0][1]
-        return most_common / len(self.text_responses)
+
+        return float(most_common / len(self.text_responses))
 
 
-    # -------------------------------------------------
-    # 5️⃣ Compute
-    # -------------------------------------------------
+
     def compute(self):
 
         entropy = self.predictive_entropy()
+        log_prob = self.sequence_log_probability()
         confidence = self.confidence()
+        perplexity = self.perplexity()
         consistency = self.self_consistency()
 
         return {
-            "white_entropy": float(entropy),
-            "white_confidence": float(confidence),
-            "white_consistency": float(consistency)
+            "white_entropy": entropy,
+            "white_log_probability": log_prob,
+            "white_confidence": confidence,
+            "white_perplexity": perplexity,
+            "white_consistency": consistency
         }
