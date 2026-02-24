@@ -5,10 +5,10 @@ class FinalScore:
 
     def compute(self, metrics: dict):
 
-        entropy = metrics.get("entropy", 0.0)
-        consistency = metrics.get("self_consistency", 1.0)
-        confidence = metrics.get("confidence", 1.0)
-        semantic = metrics.get("semantic_consistency", 1.0)
+        entropy = metrics.get("whitebox_white_entropy", 0.0)
+        consistency = metrics.get("whitebox_white_consistency", 1.0)
+        confidence = metrics.get("whitebox_white_confidence", 1.0)
+        semantic = metrics.get("semantic_semantic_consistency", 1.0)
 
         entropy_norm = min(entropy / self.entropy_max, 1.0)
 
