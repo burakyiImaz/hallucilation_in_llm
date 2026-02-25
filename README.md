@@ -401,7 +401,7 @@ ECE
 
 For each prompt-response pair, inspect:
 
-### 1️⃣ Whitebox_Uncertainty
+### 1️- Whitebox_Uncertainty
 
 High value → internal distribution is flat → epistemic uncertainty.
 
@@ -414,7 +414,7 @@ This indicates **overconfidence failure**.
 
 ---
 
-### 2️⃣ Graybox_Uncertainty
+### 2️- Graybox_Uncertainty
 
 Measures average per-token log probability.
 
@@ -425,7 +425,7 @@ If:
 
 ---
 
-### 3️⃣ Blackbox_Uncertainty
+### 3️- Blackbox_Uncertainty
 
 Based on repeated sampling.
 
@@ -438,7 +438,7 @@ Instability often correlates with hallucination risk.
 
 ---
 
-### 4️⃣ Semantic_Uncertainty
+### 4️- Semantic_Uncertainty
 
 Defined as:
 
@@ -455,7 +455,7 @@ If:
 
 ---
 
-### 5️⃣ Final_Score
+### 5️- Final_Score
 
 Computed as weighted integration:
 
