@@ -1,7 +1,7 @@
 
 ---
 
-# 🧠 Hallucination-in-LLM
+#  Hallucination-in-LLM
 
 ## A Unified Multi-Level Uncertainty Framework for Hallucination Detection
 
