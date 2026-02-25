@@ -9,7 +9,6 @@ class HallucinationDecider:
     def _safe(self, value):
         if value is None:
             return 0.0
-        # NumPy tiplerini float yap
         if isinstance(value, (float, np.floating)):
             if math.isnan(value) or math.isinf(value):
                 return 0.0

@@ -1,4 +1,3 @@
-# class_diagram.py
 import matplotlib.pyplot as plt
 import networkx as nx
 
@@ -9,11 +8,9 @@ class ClassDiagram:
     def generate(self):
         G = nx.DiGraph()
 
-        # Nodes
         G.add_node("HFModel\n- model_name\n- device\n- hf_token\n- is_api_model\n+generate()\n+_generate_local()\n+_generate_via_api()")
         G.add_node("ModelOutput\n- responses\n- logits\n- log_probs\n- token_ids")
 
-        # Edge
         G.add_edge("HFModel\n- model_name\n- device\n- hf_token\n- is_api_model\n+generate()\n+_generate_local()\n+_generate_via_api()",
                    "ModelOutput\n- responses\n- logits\n- log_probs\n- token_ids")
 

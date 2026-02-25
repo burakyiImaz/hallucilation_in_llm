@@ -5,10 +5,10 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 
 class ModelOutput:
     def __init__(self, responses, token_ids, logits, log_probs):
-        self.responses = responses          # List[str]
-        self.token_ids = token_ids          # List[List[int]]
-        self.logits = logits                # List[Tensor(new_tokens, vocab)]
-        self.log_probs = log_probs          # List[List[float]]
+        self.responses = responses
+        self.token_ids = token_ids
+        self.logits = logits
+        self.log_probs = log_probs
 
 
 class HFModel:
@@ -48,7 +48,7 @@ class HFModel:
         )
 
         sequences = outputs.sequences
-        scores = outputs.scores  # tuple(len=new_tokens) of tensors
+        scores = outputs.scores
 
         responses = []
         token_ids_list = []
@@ -56,24 +56,21 @@ class HFModel:
         log_probs_list = []
 
         for i in range(num_samples):
-            # sadece generated token kısmını alıyoruz
             generated_tokens = sequences[i][prompt_length:]
             token_ids_list.append(generated_tokens.tolist())
 
             text = self.tokenizer.decode(generated_tokens, skip_special_tokens=True)
             responses.append(text)
 
-        # Whitebox ve log_probs hesaplama
         if scores is not None and len(scores) > 0:
-            stacked_scores = torch.stack(scores, dim=0)           # (new_tokens, batch, vocab)
-            stacked_scores = stacked_scores.permute(1, 0, 2)      # (batch, new_tokens, vocab)
+            stacked_scores = torch.stack(scores, dim=0)
+            stacked_scores = stacked_scores.permute(1, 0, 2)
 
             for i in range(num_samples):
-                sample_logits = stacked_scores[i]                # (new_tokens, vocab)
+                sample_logits = stacked_scores[i]
                 gen_tokens = sequences[i][prompt_length:]
-                gen_tokens = gen_tokens[:sample_logits.size(0)]  # alignment
+                gen_tokens = gen_tokens[:sample_logits.size(0)]
 
-                # Eğer token sayısı < logits boyutu ise truncate et
                 if len(gen_tokens) < sample_logits.size(0):
                     sample_logits = sample_logits[:len(gen_tokens)]
 
@@ -84,7 +81,6 @@ class HFModel:
                 log_probs_list.append(token_log_probs.detach().cpu().tolist())
 
         else:
-            # Eğer score yoksa dummy değerler ile whitebox kırılmasın
             vocab_size = self.model.config.vocab_size
             for _ in range(num_samples):
                 logits_list.append(torch.zeros((1, vocab_size)))

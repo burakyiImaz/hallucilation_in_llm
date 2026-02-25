@@ -6,10 +6,6 @@ import os
 
 
 class EnsembleSemanticUncertainty:
-    """
-    Optimized semantic consistency with model caching.
-    Models load only once per process.
-    """
 
     HF_TOKEN = "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"
 
@@ -39,7 +35,6 @@ class EnsembleSemanticUncertainty:
         self.encoders = []
         for name in self.model_names:
 
-            # ✔ Eğer daha önce yüklenmişse tekrar yükleme
             if name not in self._MODEL_CACHE:
                 print(f"Loading semantic model: {name}")
                 self._MODEL_CACHE[name] = SentenceTransformer(

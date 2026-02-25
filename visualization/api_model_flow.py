@@ -1,4 +1,3 @@
-# api_model_flow.py
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -10,11 +9,9 @@ class ApiModelFlow:
         self.output_path_line = output_path_line
 
     def generate(self):
-        # Simüle edilmiş token frekansı
         token_ids = np.random.randint(0, 20, size=100)
         token_counts = pd.Series(token_ids).value_counts().sort_index()
 
-        # Bar chart
         plt.figure(figsize=(10,6))
         sns.barplot(x=token_counts.index, y=token_counts.values, palette="magma")
         plt.xlabel("Token ID")
@@ -24,7 +21,6 @@ class ApiModelFlow:
         plt.close()
         print(f"API model bar chart saved as {self.output_path_bar}")
 
-        # Line chart (simüle edilmiş temperature vs entropy)
         temperatures = np.linspace(0.1, 2.0, 10)
         entropy = np.log(temperatures + 1) + np.random.rand(10)*0.1
 

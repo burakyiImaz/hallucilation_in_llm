@@ -26,18 +26,15 @@ class HallucinationScore:
         components = []
         total_weight = 0.0
 
-        # White-box: entropy → normalized uncertainty
         if self.white is not None:
             white_norm = min(self.white / self.entropy_max, 1.0)
             components.append(self.weights["white"] * white_norm)
             total_weight += self.weights["white"]
 
-        # Gray-box: confidence → uncertainty
         if self.gray is not None:
             components.append(self.weights["gray"] * (1 - self.gray))
             total_weight += self.weights["gray"]
 
-        # Black-box: consistency → uncertainty
         if self.black is not None:
             components.append(self.weights["black"] * (1 - self.black))
             total_weight += self.weights["black"]

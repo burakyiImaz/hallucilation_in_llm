@@ -8,7 +8,7 @@ class GrayBoxUncertainty:
 
     def __init__(self, responses, log_probs=None):
         self.responses = responses
-        self.log_probs = log_probs  # List[Tensor(seq_len)]
+        self.log_probs = log_probs
 
 
     def self_consistency(self):
@@ -26,9 +26,6 @@ class GrayBoxUncertainty:
  
  
     def mean_log_probability(self):
-        """
-        Robust mean log-probability across all sequences and tokens
-        """
 
         if self.log_probs is None:
             raise ValueError("log_probs not provided")
@@ -37,11 +34,9 @@ class GrayBoxUncertainty:
 
         for lp in self.log_probs:
 
-            # Eğer Tensor ise direkt ekle
             if isinstance(lp, torch.Tensor):
                 flat_tensors.append(lp)
 
-            # Eğer list ise Tensor'a çevir
             elif isinstance(lp, list):
                 flat_tensors.append(torch.tensor(lp))
 

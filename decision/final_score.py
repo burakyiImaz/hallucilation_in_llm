@@ -8,7 +8,6 @@ class FinalScore:
         self.entropy_max = entropy_max
 
     def compute(self, metrics: dict):
-        # Tüm değerleri güvenli float olarak al
         entropy = float(metrics.get("whitebox_white_entropy", 0.0))
         confidence = float(metrics.get("whitebox_white_confidence", 1.0))
         consistency = float(metrics.get("whitebox_white_consistency", 1.0))

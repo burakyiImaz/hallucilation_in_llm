@@ -7,9 +7,6 @@ class StatisticalAnalyzer:
 
     @staticmethod
     def _sanitize(scores, labels):
-        """
-        Remove NaN, Inf and handle length mismatch.
-        """
         scores = np.array(scores, dtype=float)
         labels = np.array(labels, dtype=float)
 
@@ -28,17 +25,11 @@ class StatisticalAnalyzer:
 
     @staticmethod
     def _to_binary(labels, threshold=0.5):
-        """
-        Convert continuous labels to binary.
-        1 = hallucination (positive class)
-        """
         labels = np.array(labels)
 
-        # Already binary
         if np.all(np.isin(labels, [0, 1])):
             return labels.astype(int)
 
-        # Continuous -> threshold
         return np.array(
             [1 if l >= threshold else 0 for l in labels],
             dtype=int
@@ -46,12 +37,6 @@ class StatisticalAnalyzer:
 
     @staticmethod
     def _align_score_direction(scores, labels):
-        """
-        Ensure higher score = higher probability of hallucination.
-
-        If correlation between scores and labels is negative,
-        flip score direction.
-        """
         if len(scores) < 2:
             return scores
 
@@ -67,10 +52,6 @@ class StatisticalAnalyzer:
 
     @staticmethod
     def correlation(scores, labels):
-        """
-        Pearson & Spearman correlation.
-        NaN-safe and constant-safe.
-        """
         scores, labels = StatisticalAnalyzer._sanitize(scores, labels)
 
         if len(scores) < 2:
@@ -96,10 +77,6 @@ class StatisticalAnalyzer:
 
     @staticmethod
     def auroc(scores, labels, threshold=0.5):
-        """
-        AUROC computation.
-        Positive class = hallucination (1)
-        """
         scores, labels = StatisticalAnalyzer._sanitize(scores, labels)
 
         if len(scores) < 2:
@@ -119,10 +96,6 @@ class StatisticalAnalyzer:
 
     @staticmethod
     def pr_auc(scores, labels, threshold=0.5):
-        """
-        PR-AUC computation.
-        Positive class = hallucination (1)
-        """
         scores, labels = StatisticalAnalyzer._sanitize(scores, labels)
 
         if len(scores) < 2:

@@ -11,9 +11,6 @@ class WhiteBoxUncertainty:
         self.token_ids = token_ids
         self.text_responses = text_responses
 
-    # ============================================================
-    # Predictive Entropy
-    # ============================================================
     def predictive_entropy(self):
 
         if self.scores is None or len(self.scores) == 0:
@@ -66,7 +63,6 @@ class WhiteBoxUncertainty:
 
             seq_len = sample_logits.shape[0]
 
-            # Only generated tokens
             chosen_tokens = token_seq[-seq_len:]
 
             token_log_probs = []
@@ -83,7 +79,6 @@ class WhiteBoxUncertainty:
             if not token_log_probs:
                 continue
 
-            # 🔥 length normalized
             seq_log_prob = torch.stack(token_log_probs).mean()
             sequence_log_probs.append(seq_log_prob)
 
@@ -97,14 +92,7 @@ class WhiteBoxUncertainty:
 
         return float(mean_log_prob.item())
 
-    # ============================================================
-    # 3️⃣ Confidence (Proper Probability)
-    # ============================================================
     def confidence(self):
-        """
-        Convert mean log-probability to probability space.
-        Since log_prob is length-normalized, exp(log_prob) is stable.
-        """
 
         log_p = self.sequence_log_probability()
 
@@ -113,14 +101,10 @@ class WhiteBoxUncertainty:
         if math.isnan(confidence) or math.isinf(confidence):
             return 0.0
 
-        # clamp to [0,1]
         confidence = max(0.0, min(1.0, confidence))
 
         return float(confidence)
 
-    # ============================================================
-    # 4️⃣ Perplexity
-    # ============================================================
     def perplexity(self):
 
         log_p = self.sequence_log_probability()

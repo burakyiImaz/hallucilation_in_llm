@@ -25,7 +25,6 @@ class PipelineRunner:
 
     def run(self, prompt):
 
-        # 1️⃣ Generate
         output = self.model.generate(
             prompt,
             num_samples=self.num_samples,
@@ -44,7 +43,6 @@ class PipelineRunner:
                 if not isinstance(result, dict):
                     continue
 
-                # Namespace keys to avoid collision
                 for k, v in result.items():
                     uncertainty_results[f"{name}_{k}"] = v
 

@@ -8,11 +8,9 @@ class LocalModelFlow:
         self.output_path_violin = output_path_violin
 
     def generate(self):
-        # Simüle edilmiş logit verisi: 10 token, 20 vocabulary
         np.random.seed(42)
         logits = np.random.randn(10, 20)
 
-        # Heatmap
         plt.figure(figsize=(10,6))
         sns.heatmap(logits, annot=True, fmt=".2f", cmap="viridis", cbar_kws={'label': 'Logit Score'})
         plt.xlabel("Vocabulary ID")
@@ -22,7 +20,6 @@ class LocalModelFlow:
         plt.close()
         print(f"Local model heatmap saved as {self.output_path_heat}")
 
-        # Violin plot (log_probs distribution)
         log_probs = np.exp(logits) / np.exp(logits).sum(axis=1, keepdims=True)
         plt.figure(figsize=(10,6))
         sns.violinplot(data=log_probs, palette="coolwarm")

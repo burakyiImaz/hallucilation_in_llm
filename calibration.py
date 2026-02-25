@@ -5,9 +5,6 @@ class CalibrationMetrics:
 
     @staticmethod
     def _sanitize(confidences, labels):
-        """
-        Remove NaN, Inf and align length.
-        """
         confidences = np.array(confidences, dtype=float)
         labels = np.array(labels, dtype=float)
 
@@ -26,20 +23,12 @@ class CalibrationMetrics:
 
     @staticmethod
     def _to_binary(labels, threshold=0.5):
-        """
-        Convert continuous labels to binary.
-        1 = hallucination
-        """
         if not np.all(np.isin(labels, [0, 1])):
             return np.array([1 if l >= threshold else 0 for l in labels], dtype=int)
         return labels.astype(int)
 
     @staticmethod
     def _align_direction(confidences, labels):
-        """
-        Ensure higher confidence = higher probability of hallucination.
-        If correlation negative → flip.
-        """
         if len(confidences) < 2:
             return confidences
 
@@ -55,10 +44,6 @@ class CalibrationMetrics:
 
     @staticmethod
     def brier_score(confidences, labels, threshold=0.5):
-        """
-        Brier Score
-        Lower = better
-        """
         confidences, labels = CalibrationMetrics._sanitize(confidences, labels)
 
         if len(confidences) == 0:
@@ -71,10 +56,6 @@ class CalibrationMetrics:
 
     @staticmethod
     def expected_calibration_error(confidences, labels, n_bins=10, threshold=0.5):
-        """
-        Expected Calibration Error (ECE)
-        Lower = better
-        """
         confidences, labels = CalibrationMetrics._sanitize(confidences, labels)
 
         if len(confidences) == 0:
@@ -89,7 +70,6 @@ class CalibrationMetrics:
 
         for i in range(n_bins):
 
-            # include right edge in last bin
             if i == n_bins - 1:
                 mask = (confidences >= bins[i]) & (confidences <= bins[i + 1])
             else:

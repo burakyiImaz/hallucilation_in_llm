@@ -1,4 +1,3 @@
-# access_flow_diagram.py
 import matplotlib.pyplot as plt
 from matplotlib.sankey import Sankey
 
