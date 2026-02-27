@@ -7,7 +7,7 @@ import os
 
 class EnsembleSemanticUncertainty:
 
-    HF_TOKEN = "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"
+    HF_TOKEN = "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"
 
     EN_MODELS = [
         "sentence-transformers/all-MiniLM-L6-v2",

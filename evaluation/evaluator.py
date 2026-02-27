@@ -42,6 +42,7 @@ class Evaluator:
             "metrics": {
                 "entropy": entropy,
                 "confidence": confidence,
+                "consistency": consistency,
                 "self_consistency": consistency
             },
             "final_score": final_score

@@ -24,7 +24,9 @@ class HallucinationDecider:
 
         entropy = self._safe(metrics.get("entropy"))
         confidence = self._safe(metrics.get("confidence"))
-        consistency = self._safe(metrics.get("consistency"))
+        consistency = self._safe(
+            metrics.get("consistency", metrics.get("self_consistency"))
+        )
 
         if entropy > self.thresholds.get("entropy", float("inf")):
             return "hallucination"
