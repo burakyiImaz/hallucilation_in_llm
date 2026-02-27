@@ -3,14 +3,12 @@ import torch.nn.functional as F
 from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig
 from huggingface_hub import login
 
-
 class ModelOutput:
     def __init__(self, responses, token_ids, logits, log_probs):
         self.responses = responses
         self.token_ids = token_ids
         self.logits = logits
         self.log_probs = log_probs
-
 
 class HFModel:
     def __init__(
@@ -23,15 +21,21 @@ class HFModel:
         # ---- Device ----
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
 
-        # ---- Optional HuggingFace login ----
+        # ---- Optional HuggingFace login (private models için) ----
         if hf_token is not None:
-            login(hf_token)
+            login(token=hf_token)
 
         # ---- Load tokenizer ----
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.tokenizer = AutoTokenizer.from_pretrained(
+            model_name,
+            use_auth_token=hf_token
+        )
 
         # ---- Load model ----
-        self.model = AutoModelForCausalLM.from_pretrained(model_name).to(self.device)
+        self.model = AutoModelForCausalLM.from_pretrained(
+            model_name,
+            use_auth_token=hf_token
+        ).to(self.device)
         self.model.eval()
 
         # ---- Padding Fix ----
@@ -54,10 +58,16 @@ class HFModel:
         top_k=50,
         top_p=0.9
     ):
+
         with torch.no_grad():
-            inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
+            inputs = self.tokenizer(
+                prompt,
+                return_tensors="pt"
+            ).to(self.device)
+
             prompt_length = inputs["input_ids"].shape[1]
 
+            # ---- Generation Config ----
             gen_config = GenerationConfig(
                 max_new_tokens=max_new_tokens,
                 do_sample=(temperature > 0),
@@ -75,7 +85,7 @@ class HFModel:
             )
 
             sequences = outputs.sequences
-            scores = outputs.scores
+            scores = outputs.scores  # tuple(seq_len) of (batch, vocab)
 
             responses = []
             token_ids_list = []
@@ -85,11 +95,19 @@ class HFModel:
             for i in range(num_samples):
                 generated_tokens = sequences[i][prompt_length:]
                 token_ids_list.append(generated_tokens.tolist())
-                text = self.tokenizer.decode(generated_tokens, skip_special_tokens=True)
+
+                text = self.tokenizer.decode(
+                    generated_tokens,
+                    skip_special_tokens=True
+                )
+
                 responses.append(text.strip())
 
+            # ======================================================
             # LOGITS & LOG PROBS
+            # ======================================================
             if scores is not None and len(scores) > 0:
+                # (seq_len, batch, vocab) -> (batch, seq_len, vocab)
                 stacked_scores = torch.stack(scores, dim=0).permute(1, 0, 2)
                 for i in range(num_samples):
                     sample_logits = stacked_scores[i]
@@ -97,10 +115,15 @@ class HFModel:
                     seq_len = min(len(gen_tokens), sample_logits.size(0))
                     sample_logits = sample_logits[:seq_len]
                     gen_tokens = gen_tokens[:seq_len]
-                    sample_logits = sample_logits.detach().cpu()
-                    logits_list.append(sample_logits)
+
+                    logits_list.append(sample_logits.detach().cpu())
+
                     log_probs = F.log_softmax(sample_logits, dim=-1)
-                    token_log_probs = log_probs.gather(1, gen_tokens.unsqueeze(-1).cpu()).squeeze(-1)
+                    token_log_probs = log_probs.gather(
+                        1,
+                        gen_tokens.unsqueeze(-1).cpu()
+                    ).squeeze(-1)
+
                     log_probs_list.append(token_log_probs.detach().tolist())
             else:
                 vocab_size = self.model.config.vocab_size
