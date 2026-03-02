@@ -103,9 +103,8 @@ class HFModel:
 
                 responses.append(text.strip())
 
-            # ======================================================
-            # LOGITS & LOG PROBS
-            # ======================================================
+
+
             if scores is not None and len(scores) > 0:
                 # (seq_len, batch, vocab) -> (batch, seq_len, vocab)
                 stacked_scores = torch.stack(scores, dim=0).permute(1, 0, 2)
