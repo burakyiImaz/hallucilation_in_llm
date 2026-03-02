@@ -3,11 +3,12 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 from itertools import combinations
 import os
+from collections import Counter
 
 
 class EnsembleSemanticUncertainty:
 
-    HF_TOKEN = "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"
+    HF_TOKEN = os.getenv("HF_TOKEN")
 
     EN_MODELS = [
         "sentence-transformers/all-MiniLM-L6-v2",
@@ -35,15 +36,39 @@ class EnsembleSemanticUncertainty:
         self.encoders = []
         for name in self.model_names:
 
-            if name not in self._MODEL_CACHE:
-                print(f"Loading semantic model: {name}")
-                self._MODEL_CACHE[name] = SentenceTransformer(
-                    name,
-                    device=self.device,
-                    use_auth_token=self.HF_TOKEN
-                )
+            try:
+                if name not in self._MODEL_CACHE:
+                    print(f"Loading semantic model: {name}")
+                    kwargs = {"device": self.device}
+                    if self.HF_TOKEN:
+                        kwargs["token"] = self.HF_TOKEN
+                    self._MODEL_CACHE[name] = SentenceTransformer(name, **kwargs)
 
-            self.encoders.append(self._MODEL_CACHE[name])
+                self.encoders.append(self._MODEL_CACHE[name])
+            except Exception as e:
+                print(f"[WARNING] Semantic model failed ({name}): {e}")
+
+    def _lexical_similarity_fallback(self):
+        if len(self.responses) < 2:
+            return 1.0
+
+        similarities = []
+        tokenized = []
+
+        for response in self.responses:
+            tokens = [t for t in response.lower().split() if t.strip()]
+            tokenized.append(Counter(tokens))
+
+        for i, j in combinations(range(len(tokenized)), 2):
+            set_i = set(tokenized[i].keys())
+            set_j = set(tokenized[j].keys())
+            union = len(set_i | set_j)
+            if union == 0:
+                similarities.append(1.0)
+            else:
+                similarities.append(len(set_i & set_j) / union)
+
+        return float(np.mean(similarities)) if similarities else 1.0
 
     def _semantic_consistency_single_model(self, encoder):
 
@@ -70,6 +95,9 @@ class EnsembleSemanticUncertainty:
         return float(np.mean(similarities)) if similarities else 1.0
 
     def semantic_consistency(self):
+
+        if not self.encoders:
+            return self._lexical_similarity_fallback()
 
         scores = []
 
