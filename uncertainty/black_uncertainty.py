@@ -11,6 +11,9 @@ class BlackBoxUncertainty:
 
     def self_consistency(self):
 
+        if not self.responses:
+            return 0.0
+
         normalized = [r.strip().lower() for r in self.responses]
         counts = Counter(normalized)
         most_common = counts.most_common(1)[0][1]
@@ -20,6 +23,9 @@ class BlackBoxUncertainty:
 
     def response_entropy(self):
 
+        if not self.responses:
+            return 0.0
+
         normalized = [r.strip().lower() for r in self.responses]
         counts = Counter(normalized)
         probs = np.array(list(counts.values())) / len(self.responses)
@@ -27,8 +33,11 @@ class BlackBoxUncertainty:
         return -np.sum(probs * np.log(probs + 1e-12))
 
     def unique_ratio(self):
+        if not self.responses:
+            return 0.0
 
-        return len(set(self.responses)) / len(self.responses)
+        normalized = [r.strip().lower() for r in self.responses]
+        return len(set(normalized)) / len(normalized)
 
 
     def confidence(self):
@@ -39,6 +48,7 @@ class BlackBoxUncertainty:
         return {
             "black_consistency": self.self_consistency(),
             "black_entropy": self.response_entropy(),
-            "black_confidence": self.confidence()
+            "black_confidence": self.confidence(),
+            "black_unique_ratio": self.unique_ratio()
         }
 
