@@ -119,6 +119,24 @@ class WhiteBoxUncertainty:
 
         return float(ppl)
 
+    def max_logit(self):
+
+        if self.scores is None or len(self.scores) == 0:
+            return 0.0
+
+        maxima = []
+
+        for sample_logits in self.scores:
+            if sample_logits is None or sample_logits.numel() == 0:
+                continue
+
+            maxima.append(float(sample_logits.float().max().item()))
+
+        if not maxima:
+            return 0.0
+
+        return float(sum(maxima) / len(maxima))
+
 
 
     def self_consistency(self):
@@ -145,11 +163,13 @@ class WhiteBoxUncertainty:
         confidence = self.confidence()
         perplexity = self.perplexity()
         consistency = self.self_consistency()
+        max_logit = self.max_logit()
 
         return {
             "white_entropy": entropy,
             "white_log_probability": log_prob,
             "white_confidence": confidence,
             "white_perplexity": perplexity,
-            "white_consistency": consistency
+            "white_consistency": consistency,
+            "white_max_logit": max_logit
         }
