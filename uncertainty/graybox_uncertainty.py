@@ -43,10 +43,50 @@ class GrayBoxUncertainty:
             else:
                 raise TypeError(f"Unsupported log_probs type: {type(lp)}")
 
-        all_tokens = torch.cat(flat_tensors)
+        all_tokens = torch.cat(flat_tensors).float()
+        all_tokens = all_tokens[torch.isfinite(all_tokens)]
+
+        if all_tokens.numel() == 0:
+            return 0.0
+
         mean_log_prob = all_tokens.mean()
 
         return mean_log_prob.item()
+
+    def per_response_mean_log_probs(self):
+
+        if self.log_probs is None:
+            raise ValueError("log_probs not provided")
+
+        means = []
+
+        for lp in self.log_probs:
+
+            if isinstance(lp, torch.Tensor):
+                t = lp
+            elif isinstance(lp, list):
+                t = torch.tensor(lp)
+            else:
+                raise TypeError(f"Unsupported log_probs type: {type(lp)}")
+
+            t = t.float()
+            t = t[torch.isfinite(t)]
+
+            if t.numel() == 0:
+                continue
+
+            means.append(t.float().mean().item())
+
+        return means
+
+    def log_prob_std(self):
+
+        means = self.per_response_mean_log_probs()
+
+        if len(means) < 2:
+            return 0.0
+
+        return float(np.std(np.array(means, dtype=float)))
 
 
     def confidence(self):
@@ -61,7 +101,11 @@ class GrayBoxUncertainty:
         return consistency
 
     def compute(self):
+        mean_log_p = self.mean_log_probability() if self.log_probs is not None else 0.0
+
         return {
             "gray_confidence": self.confidence(),
-            "gray_entropy": self.response_entropy()
+            "gray_entropy": self.response_entropy(),
+            "gray_mean_log_probability": mean_log_p,
+            "gray_std": self.log_prob_std() if self.log_probs is not None else 0.0
         }
