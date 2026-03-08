@@ -18,31 +18,28 @@ class HFModel:
         hf_token=None,
         deterministic=False
     ):
-        # ---- Device ----
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
 
-        # ---- Optional HuggingFace login (private models için) ----
+
         if hf_token is not None:
             login(token=hf_token)
 
-        # ---- Load tokenizer ----
+
         self.tokenizer = AutoTokenizer.from_pretrained(
             model_name,
             use_auth_token=hf_token
         )
 
-        # ---- Load model ----
+
         self.model = AutoModelForCausalLM.from_pretrained(
             model_name,
             use_auth_token=hf_token
         ).to(self.device)
         self.model.eval()
 
-        # ---- Padding Fix ----
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        # ---- Deterministic mode ----
         if deterministic:
             torch.manual_seed(42)
             torch.cuda.manual_seed_all(42)
@@ -67,7 +64,6 @@ class HFModel:
 
             prompt_length = inputs["input_ids"].shape[1]
 
-            # ---- Generation Config ----
             gen_config = GenerationConfig(
                 max_new_tokens=max_new_tokens,
                 do_sample=(temperature > 0),

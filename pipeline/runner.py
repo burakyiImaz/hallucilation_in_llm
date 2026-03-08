@@ -1,6 +1,14 @@
 
 from evaluation.evaluator import Evaluator
 
+# Semantic uncertainty is optional due to potential version conflicts
+try:
+    from uncertainty.semantic_uncertainty import EnsembleSemanticUncertainty
+    SEMANTIC_AVAILABLE = True
+except (ImportError, RuntimeError, ModuleNotFoundError):
+    EnsembleSemanticUncertainty = None
+    SEMANTIC_AVAILABLE = False
+
 
 class PipelineRunner:
 
@@ -48,6 +56,17 @@ class PipelineRunner:
 
             except Exception as e:
                 print(f"[WARNING] {name} module failed: {e}")
+
+        # Always compute semantic uncertainty
+        try:
+            semantic_module = EnsembleSemanticUncertainty(output.responses, language="en")
+            semantic_result = semantic_module.compute()
+            
+            if isinstance(semantic_result, dict):
+                for k, v in semantic_result.items():
+                    uncertainty_results[f"semantic_{k}"] = v
+        except Exception as e:
+            print(f"[WARNING] semantic uncertainty failed: {e}")
 
         evaluation = self.evaluator.evaluate(uncertainty_results)
 

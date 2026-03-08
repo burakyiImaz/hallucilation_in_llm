@@ -22,4 +22,3 @@ class FinalScore:
             0.15 * (1 - semantic)
         )
         return float(uncertainty_score)
-

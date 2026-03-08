@@ -3,12 +3,11 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 from itertools import combinations
 import os
-from collections import Counter
 
 
 class EnsembleSemanticUncertainty:
 
-    HF_TOKEN = os.getenv("HF_TOKEN")
+    HF_TOKEN = "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"
 
     EN_MODELS = [
         "sentence-transformers/all-MiniLM-L6-v2",
@@ -36,39 +35,15 @@ class EnsembleSemanticUncertainty:
         self.encoders = []
         for name in self.model_names:
 
-            try:
-                if name not in self._MODEL_CACHE:
-                    print(f"Loading semantic model: {name}")
-                    kwargs = {"device": self.device}
-                    if self.HF_TOKEN:
-                        kwargs["token"] = self.HF_TOKEN
-                    self._MODEL_CACHE[name] = SentenceTransformer(name, **kwargs)
+            if name not in self._MODEL_CACHE:
+                print(f"Loading semantic model: {name}")
+                self._MODEL_CACHE[name] = SentenceTransformer(
+                    name,
+                    device=self.device,
+                    use_auth_token=self.HF_TOKEN
+                )
 
-                self.encoders.append(self._MODEL_CACHE[name])
-            except Exception as e:
-                print(f"[WARNING] Semantic model failed ({name}): {e}")
-
-    def _lexical_similarity_fallback(self):
-        if len(self.responses) < 2:
-            return 1.0
-
-        similarities = []
-        tokenized = []
-
-        for response in self.responses:
-            tokens = [t for t in response.lower().split() if t.strip()]
-            tokenized.append(Counter(tokens))
-
-        for i, j in combinations(range(len(tokenized)), 2):
-            set_i = set(tokenized[i].keys())
-            set_j = set(tokenized[j].keys())
-            union = len(set_i | set_j)
-            if union == 0:
-                similarities.append(1.0)
-            else:
-                similarities.append(len(set_i & set_j) / union)
-
-        return float(np.mean(similarities)) if similarities else 1.0
+            self.encoders.append(self._MODEL_CACHE[name])
 
     def _semantic_consistency_single_model(self, encoder):
 
@@ -96,9 +71,6 @@ class EnsembleSemanticUncertainty:
 
     def semantic_consistency(self):
 
-        if not self.encoders:
-            return self._lexical_similarity_fallback()
-
         scores = []
 
         for encoder in self.encoders:
@@ -106,6 +78,40 @@ class EnsembleSemanticUncertainty:
             scores.append(score)
 
         return float(np.mean(scores))
+
+    def ground_truth_similarity(self, ground_truth_answer):
+        """
+        Compute similarity between responses and ground truth answer
+        """
+        if not self.responses or not ground_truth_answer:
+            return 0.0
+        
+        similarities = []
+        
+        # Use the first encoder for ground truth comparison
+        encoder = self.encoders[0]
+        
+        with torch.no_grad():
+            gt_embedding = encoder.encode(
+                ground_truth_answer,
+                convert_to_tensor=True,
+                normalize_embeddings=True
+            )
+            
+            response_embeddings = encoder.encode(
+                self.responses,
+                convert_to_tensor=True,
+                normalize_embeddings=True
+            )
+        
+        for resp_emb in response_embeddings:
+            sim = torch.nn.functional.cosine_similarity(
+                gt_embedding.unsqueeze(0),
+                resp_emb.unsqueeze(0)
+            ).item()
+            similarities.append(sim)
+        
+        return float(np.mean(similarities)) if similarities else 0.0
 
     def compute(self):
 
@@ -115,4 +121,18 @@ class EnsembleSemanticUncertainty:
         return {
             "semantic_consistency": float(consistency),
             "semantic_uncertainty": float(uncertainty_score)
+        }
+    
+    def compute_with_ground_truth(self, ground_truth_answer):
+        """
+        Compute semantic metrics including ground truth similarity
+        """
+        consistency = self.semantic_consistency()
+        uncertainty_score = 1.0 - consistency
+        similarity = self.ground_truth_similarity(ground_truth_answer)
+        
+        return {
+            "semantic_consistency": float(consistency),
+            "semantic_uncertainty": float(uncertainty_score),
+            "ground_truth_similarity": float(similarity)
         }
