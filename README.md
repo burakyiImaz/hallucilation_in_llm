@@ -1,9 +1,9 @@
-# Hallucination Detection in LLMs  
+# Hallucination Detection in LLMs
 ### A Mathematical, Multi-Signal Reliability Framework
 
-[![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)  
-[![Status](https://img.shields.io/badge/Status-Active-success.svg)](#)  
-[![Focus](https://img.shields.io/badge/Focus-Hallucination%20Risk-orange.svg)](#)  
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
+[![Status](https://img.shields.io/badge/Status-Active-success.svg)](#)
+[![Focus](https://img.shields.io/badge/Focus-Hallucination%20Risk-orange.svg)](#)
 [![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)](#license)
 
 This repository presents a mathematically grounded framework for measuring hallucination risk in Large Language Models (LLMs) via **black-box**, **gray-box**, and **white-box** uncertainty signals, then mapping them into a calibrated risk score.
@@ -14,10 +14,10 @@ This repository presents a mathematically grounded framework for measuring hallu
 
 > Place these files under `docs/assets/` for full GitHub rendering.
 
-![System Overview](docs/assets/01_system_overview.png)  
-![Uncertainty Layers](docs/assets/02_uncertainty_layers.png)  
-![Fusion and Thresholding](docs/assets/03_fusion_thresholds.png)  
-![ROC and PR Curves](docs/assets/04_roc_pr.png)  
+![System Overview](docs/assets/01_system_overview.png)
+![Uncertainty Layers](docs/assets/02_uncertainty_layers.png)
+![Fusion and Thresholding](docs/assets/03_fusion_thresholds.png)
+![ROC and PR Curves](docs/assets/04_roc_pr.png)
 ![Calibration Diagram](docs/assets/05_calibration.png)
 
 ---
@@ -54,6 +54,7 @@ estimate hallucination risk:
 \[
 H(x)\in[0,1]
 \]
+
 with:
 - \(H(x)\approx 0\): reliable output behavior,
 - \(H(x)\approx 1\): high hallucination likelihood.
@@ -142,6 +143,7 @@ Optional margin confidence:
 \[
 m_t=p_t(k_{(1)})-p_t(k_{(2)})
 \]
+
 where \(k_{(1)}\) and \(k_{(2)}\) are top-1 and top-2 token indices.
 
 ---
@@ -190,6 +192,7 @@ Normalized features:
 \[
 \tilde{\mathbf{z}}=\mathcal{N}(\mathbf{z})
 \]
+
 where \(\mathcal{N}\) can be min-max, z-score, or robust scaling.
 
 ---
@@ -211,6 +214,7 @@ with:
 \[
 w_b,w_g,w_w,w_s,w_v\ge 0
 \]
+
 and sigmoid:
 \[
 \sigma(t)=\frac{1}{1+\exp(-t)}
@@ -295,7 +299,6 @@ Lower ECE and Brier indicate more reliable risk probabilities.
 ## 11) Recommended Ablation Protocol
 
 To measure signal importance, remove one feature family at a time:
-
 \[
 \Delta_j=\mathcal{M}(\text{full})-\mathcal{M}(\text{without signal }j)
 \]
