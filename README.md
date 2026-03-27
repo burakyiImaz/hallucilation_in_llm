@@ -1,434 +1,376 @@
-# Hallucination Detection in LLMs
+Aşağıdaki metni **direkt README.md** içine yapıştırabilirsin.  
+(Python örneği yok, tamamen matematiksel akış ve görsel odaklı.)
 
-[![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
-[![Status](https://img.shields.io/badge/Status-Active-success.svg)](#)
+# Hallucination Detection in LLMs: A Mathematical Framework
+
+[![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)  
+[![Status](https://img.shields.io/badge/Status-Research%20Grade-success.svg)](#)  
 [![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)](#license)
-[![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen.svg)](#testing)
 
-A modular and practical framework for detecting hallucinations in Large Language Models (LLMs) using **multi-level uncertainty signals** (black-box, gray-box, white-box), statistical metrics, and ground-truth similarity checks.
-
----
-
-## 📸 Project Preview
-
-> Add these images under `docs/assets/` for best GitHub rendering.
-
-![Pipeline Overview](docs/assets/pipeline-overview.png)
-![Example Evaluation Report](docs/assets/example-report.png)
-![Metric Distribution](docs/assets/metric-distribution.png)
+A mathematically grounded framework for quantifying hallucination risk in Large Language Models (LLMs) via multi-level uncertainty signals and statistical validation.
 
 ---
 
-## ✨ Key Features
+## 🖼 Visual Summary
 
-- **Multi-level uncertainty analysis**
-  - Black-box: response consistency
-  - Gray-box: log-probability signals
-  - White-box: token/logit-level confidence
-- **Statistical evaluation**
-  - Pearson / Spearman correlation
-  - AUROC / PR-AUC
-  - Score distribution metrics
-- **Text-ground-truth comparison**
-  - String similarity
-  - Keyword overlap
-  - Combined semantic proxy score
-- **Bilingual data support**
-  - Turkish and English sample datasets
-- **End-to-end evaluation pipeline**
-  - Scoring, thresholding, and report generation
+![System Overview](docs/assets/01_system_overview.png)  
+![Uncertainty Layers](docs/assets/02_uncertainty_layers.png)  
+![Score Fusion](docs/assets/03_score_fusion.png)  
+![Thresholding & Risk Bands](docs/assets/04_thresholding.png)  
+![ROC and PR Curves](docs/assets/05_roc_pr.png)  
+![Calibration Plot](docs/assets/06_calibration.png)
 
 ---
 
-## 🧠 Why This Project?
+## 1) Problem Definition
 
-LLMs can generate fluent but factually incorrect content.  
-This repository provides a structured, extensible way to:
+Given:
+- a prompt \(x\),
+- a set of model outputs \(R=\{r_1,\dots,r_n\}\),
+- optional token-level distributions/logits,
+- optional ground-truth answer \(g\),
 
-1. Quantify uncertainty
-2. Compare outputs against reference answers
-3. Produce interpretable hallucination risk levels
+we estimate a hallucination-risk function:
 
----
+$$
+H(x)\in[0,1]
+$$
 
-## 🏗️ Project Structure
-
-```text
-hallucilation_in_llm/
-├── calibration.py
-├── stat_metrics.py
-├── test.ipynb
-├── data/
-│   ├── __init__.py
-│   ├── dataset_loader.py
-│   ├── turkish_datasets.py
-│   └── english_datasets.py
-├── model/
-│   ├── __init__.py
-│   └── hf_model.py
-├── uncertainty/
-│   ├── __init__.py
-│   ├── black_uncertainty.py
-│   ├── graybox_uncertainty.py
-│   ├── whitebox_uncertainty.py
-│   └── semantic_uncertainty.py
-├── evaluation/
-│   ├── __init__.py
-│   ├── aggregation.py
-│   ├── evaluator.py
-│   ├── ground_truth.py
-│   ├── hallucination_score.py
-│   ├── thresholds.py
-│   └── report.py
-├── decision/
-│   ├── __init__.py
-│   ├── final_score.py
-│   └── hallucination_decider.py
-├── pipeline/
-│   ├── __init__.py
-│   ├── runner.py
-│   └── experiment.py
-└── README.md
-```
+where:
+- \(H(x)\approx 0\): low hallucination risk,
+- \(H(x)\approx 1\): high hallucination risk.
 
 ---
 
-## ⚙️ Installation
+## 2) End-to-End Mathematical Flow
 
-```bash
-git clone https://github.com/<your-username>/hallucilation_in_llm.git
-cd hallucilation_in_llm
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
+**Input** \(\rightarrow\) **Uncertainty extraction** \(\rightarrow\) **Normalization** \(\rightarrow\) **Fusion** \(\rightarrow\) **Calibration** \(\rightarrow\) **Risk decision**
 
----
+Formally:
 
-## 🚀 Quick Start
+$$
+x \mapsto \Big(U_{\text{black}},U_{\text{gray}},U_{\text{white}},S_{\text{gt}}\Big)
+\mapsto \tilde{\mathbf{z}}
+\mapsto H(x)
+\mapsto \hat{H}(x)
+\mapsto \text{Risk Level}
+$$
 
-```python
-from model import HFModel
-from uncertainty import BlackBoxUncertainty, GrayBoxUncertainty, WhiteBoxUncertainty
-from evaluation import HallucinationScore, HallucinationThresholds, EvaluationReport
-
-model = HFModel(model_name="gpt2")
-result = model.generate(
-    prompt="What is the capital of Turkey?",
-    max_new_tokens=30,
-    num_samples=3
-)
-
-black = BlackBoxUncertainty(responses=result.responses).compute()
-gray = GrayBoxUncertainty(
-    responses=result.responses,
-    log_probs=result.log_probs
-).compute()
-white = WhiteBoxUncertainty(
-    scores=result.logits,
-    token_ids=result.token_ids,
-    text_responses=result.responses
-).compute()
-
-score = HallucinationScore(
-    white_score=white.get("white_entropy", 0.0),
-    gray_score=gray.get("gray_entropy", 0.0),
-    black_score=black.get("black_entropy", 0.0)
-).score()
-
-risk = HallucinationThresholds().interpret(score)
-
-report = EvaluationReport(
-    hallucination_score=score,
-    level=risk,
-    white=white,
-    gray=gray,
-    black=black,
-    language="en"
-)
-
-print("Risk:", risk)
-print(report.to_json())
-```
+where:
+- \(U_{\text{black}}\): response-level inconsistency,
+- \(U_{\text{gray}}\): probability-space uncertainty,
+- \(U_{\text{white}}\): token/logit uncertainty,
+- \(S_{\text{gt}}\): ground-truth agreement score.
 
 ---
 
-## 📊 Metrics Included
+## 3) Signal Layer I — Black-Box Uncertainty
 
-### Statistical
-- Pearson correlation
-- Spearman correlation
-- AUROC
-- PR-AUC
-- Mean / Std / Min / Max / Median
+No internals required; only response samples.
 
-### Semantic Proxy
-- String similarity (`SequenceMatcher`)
-- Keyword overlap ratio
-- Combined similarity score
-- Similarity variance across samples
+Let empirical response frequency be:
 
----
-
-## ∑ Mathematical Foundations
-
-Let:
-- \(x\): prompt
-- \(R=\{r_1,\dots,r_n\}\): sampled responses
-- \(g\): ground-truth answer
-- \(y_i\in\{0,1\}\): hallucination label
-- \(s_i\in[0,1]\): predicted hallucination score
-
-### 1) Black-box uncertainty (response consistency)
-
-Empirical response probability:
-\[
+$$
 \hat{p}(r)=\frac{\text{count}(r)}{n}
-\]
+$$
 
-Response entropy:
-\[
-U_{\text{black}}=-\sum_{r\in R_{\text{unique}}}\hat{p}(r)\log \hat{p}(r)
-\]
+Entropy-based inconsistency:
 
-Normalized form:
-\[
-\tilde{U}_{\text{black}}=\frac{U_{\text{black}}}{\log |R_{\text{unique}}|+\epsilon}
-\]
+$$
+U_{\text{black}}=-\sum_{r\in R_{\text{unique}}}\hat{p}(r)\log\hat{p}(r)
+$$
 
-High entropy implies low consistency.
+Normalized entropy:
+
+$$
+\tilde{U}_{\text{black}}=
+\frac{U_{\text{black}}}{\log|R_{\text{unique}}|+\varepsilon}
+$$
+
+Interpretation:
+- low entropy \(\Rightarrow\) consistent answers,
+- high entropy \(\Rightarrow\) unstable generation behavior.
 
 ---
 
-### 2) Gray-box uncertainty (log-probability space)
+## 4) Signal Layer II — Gray-Box Uncertainty
 
-For \(r_i=(w_1,\dots,w_T)\):
-\[
-\log P(r_i|x)=\sum_{t=1}^{T}\log P(w_t\mid w_{<t},x)
-\]
+Uses token log-probabilities (without full internal state).
 
-Average token negative log-likelihood:
-\[
-\text{NLL}(r_i)=-\frac{1}{T}\sum_{t=1}^{T}\log P(w_t\mid w_{<t},x)
-\]
+For response \(r_i=(w_1,\dots,w_T)\):
+
+$$
+\log P(r_i\mid x)=\sum_{t=1}^T \log P(w_t\mid w_{<t},x)
+$$
+
+Average negative log-likelihood:
+
+$$
+\text{NLL}(r_i)=-\frac{1}{T}\sum_{t=1}^T\log P(w_t\mid w_{<t},x)
+$$
 
 Perplexity:
-\[
-\text{PPL}(r_i)=\exp(\text{NLL}(r_i))
-\]
 
-Sequence confidence proxy:
-\[
-C_{\text{gray}}(r_i)=\exp(-\text{NLL}(r_i))
-\]
-\[
-U_{\text{gray}}=1-\frac{1}{n}\sum_{i=1}^{n} C_{\text{gray}}(r_i)
-\]
+$$
+\text{PPL}(r_i)=e^{\text{NLL}(r_i)}
+$$
+
+Confidence proxy:
+
+$$
+C_{\text{gray}}(r_i)=e^{-\text{NLL}(r_i)}
+$$
+
+Aggregate uncertainty:
+
+$$
+U_{\text{gray}}=1-\frac{1}{n}\sum_{i=1}^n C_{\text{gray}}(r_i)
+$$
 
 ---
 
-### 3) White-box uncertainty (token/logit space)
+## 5) Signal Layer III — White-Box Uncertainty
 
-Given logits \(z_{t,k}\), softmax probabilities:
-\[
+Uses logits/probability vectors directly.
+
+With logits \(z_{t,k}\), token distribution:
+
+$$
 p_t(k)=\frac{e^{z_{t,k}}}{\sum_j e^{z_{t,j}}}
-\]
+$$
 
 Token entropy:
-\[
-H_t=-\sum_k p_t(k)\log p_t(k)
-\]
 
-Mean token entropy:
-\[
-U_{\text{white}}=\frac{1}{T}\sum_{t=1}^{T}H_t
-\]
+$$
+H_t=-\sum_k p_t(k)\log p_t(k)
+$$
+
+Sequence uncertainty:
+
+$$
+U_{\text{white}}=\frac{1}{T}\sum_{t=1}^T H_t
+$$
 
 Optional margin confidence:
-\[
-m_t=p_t(k_1)-p_t(k_2)
-\]
-where \(k_1,k_2\) are top-1 and top-2 tokens. Smaller \(m_t\) indicates higher uncertainty.
+
+$$
+m_t=p_t(k_{(1)})-p_t(k_{(2)})
+$$
+
+where \(k_{(1)},k_{(2)}\) are top-1 and top-2 classes. Smaller \(m_t\) implies higher ambiguity.
 
 ---
 
-### 4) Ground-truth similarity
+## 6) Ground-Truth Agreement Modeling
 
-String similarity:
-\[
-S_{\text{str}}(r_i,g)\in[0,1]
-\]
+For each response \(r_i\) and reference \(g\):
 
-Keyword overlap:
-\[
-S_{\text{kw}}(r_i,g)=\frac{|K(r_i)\cap K(g)|}{|K(g)|+\epsilon}
-\]
+- structural/textual similarity \(S_{\text{str}}(r_i,g)\in[0,1]\),
+- keyword overlap score \(S_{\text{kw}}(r_i,g)\in[0,1]\).
 
-Averaged values:
-\[
-\bar{S}_{\text{str}}=\frac{1}{n}\sum_{i=1}^{n}S_{\text{str}}(r_i,g),\quad
-\bar{S}_{\text{kw}}=\frac{1}{n}\sum_{i=1}^{n}S_{\text{kw}}(r_i,g)
-\]
+Mean agreement:
 
-Combined semantic score:
-\[
-S_{\text{comb}}=\alpha \bar{S}_{\text{str}} + (1-\alpha)\bar{S}_{\text{kw}},\quad \alpha\in[0,1]
-\]
+$$
+\bar{S}_{\text{str}}=\frac{1}{n}\sum_{i=1}^n S_{\text{str}}(r_i,g),
+\quad
+\bar{S}_{\text{kw}}=\frac{1}{n}\sum_{i=1}^n S_{\text{kw}}(r_i,g)
+$$
 
-Semantic variance (instability indicator):
-\[
-\mathrm{Var}_{\text{sem}}=\frac{1}{n}\sum_{i=1}^{n}
+Combined reference agreement:
+
+$$
+S_{\text{gt}}=\alpha\bar{S}_{\text{str}}+(1-\alpha)\bar{S}_{\text{kw}},\quad \alpha\in[0,1]
+$$
+
+Stability term (variance):
+
+$$
+\mathrm{Var}_{\text{sem}}=
+\frac{1}{n}\sum_{i=1}^n
 \left(S_{\text{str}}(r_i,g)-\bar{S}_{\text{str}}\right)^2
-\]
+$$
 
 ---
 
-### 5) Correlation and ranking quality
+## 7) Normalization and Feature Vector
 
-Pearson correlation:
-\[
-\rho_P=\frac{\sum_i (s_i-\bar{s})(y_i-\bar{y})}
-{\sqrt{\sum_i(s_i-\bar{s})^2}\sqrt{\sum_i(y_i-\bar{y})^2}}
-\]
+Define feature vector:
 
-Spearman correlation:
-\[
-\rho_S=\rho_P(\mathrm{rank}(s),\mathrm{rank}(y))
-\]
+$$
+\mathbf{z}=
+\big(U_{\text{black}},U_{\text{gray}},U_{\text{white}},S_{\text{gt}},\mathrm{Var}_{\text{sem}}\big)
+$$
 
----
+Normalized vector:
 
-### 6) Classification quality curves
+$$
+\tilde{\mathbf{z}}=\mathcal{N}(\mathbf{z})
+$$
 
-For threshold \(\tau\):
-\[
-\hat{y}_i(\tau)=\mathbb{1}[s_i\ge\tau]
-\]
-
-\[
-\mathrm{TPR}=\frac{\mathrm{TP}}{\mathrm{TP+FN}},\quad
-\mathrm{FPR}=\frac{\mathrm{FP}}{\mathrm{FP+TN}}
-\]
-\[
-\mathrm{Precision}=\frac{\mathrm{TP}}{\mathrm{TP+FP}},\quad
-\mathrm{Recall}=\frac{\mathrm{TP}}{\mathrm{TP+FN}}
-\]
-
-AUROC:
-\[
-\mathrm{AUROC}=\int_0^1 \mathrm{TPR}(u)\,d(\mathrm{FPR}(u))
-\]
-
-PR-AUC:
-\[
-\mathrm{PR\text{-}AUC}=\int_0^1 \mathrm{Precision}(r)\,d(\mathrm{Recall}(r))
-\]
+where \(\mathcal{N}\) may be min-max, z-score, or robust scaling.
 
 ---
 
-### 7) Final hallucination score fusion
+## 8) Fusion Function (Hallucination Score)
 
-Normalized fusion:
-\[
+A monotonic fusion:
+
+$$
 H(x)=\sigma\!\left(
 w_b\tilde{U}_{\text{black}}+
 w_g\tilde{U}_{\text{gray}}+
 w_w\tilde{U}_{\text{white}}-
-w_s\tilde{S}_{\text{comb}}
+w_s\tilde{S}_{\text{gt}}+
+w_v\widetilde{\mathrm{Var}}_{\text{sem}}
++b
 \right)
-\]
-where:
-- \(w_b,w_g,w_w,w_s\ge 0\)
-- \(\sigma(\cdot)\): sigmoid or clipped mapping to \([0,1]\)
+$$
 
-Risk mapping example:
-\[
-\text{LOW}: H<\tau_1,\quad
-\text{MEDIUM}: \tau_1\le H<\tau_2,\quad
-\text{HIGH}: \tau_2\le H<\tau_3,\quad
-\text{CRITICAL}: H\ge\tau_3
-\]
+Constraints:
+
+$$
+w_b,w_g,w_w,w_s,w_v\ge 0
+$$
+
+\(\sigma(\cdot)\) is typically sigmoid:
+
+$$
+\sigma(t)=\frac{1}{1+e^{-t}}
+$$
 
 ---
 
-### 8) Calibration (optional but recommended)
+## 9) Decision Rule and Risk Bands
+
+Given thresholds \(0\le\tau_1<\tau_2<\tau_3\le1\):
+
+- **LOW** if \(H(x)<\tau_1\)
+- **MEDIUM** if \(\tau_1\le H(x)<\tau_2\)
+- **HIGH** if \(\tau_2\le H(x)<\tau_3\)
+- **CRITICAL** if \(H(x)\ge\tau_3\)
+
+This yields interpretable operational decisions.
+
+---
+
+## 10) Statistical Evaluation Criteria
+
+Let \((s_i,y_i)\) be predicted score and binary label.
+
+Pearson correlation:
+
+$$
+\rho_P=
+\frac{\sum_i (s_i-\bar{s})(y_i-\bar{y})}
+{\sqrt{\sum_i (s_i-\bar{s})^2}\sqrt{\sum_i (y_i-\bar{y})^2}}
+$$
+
+Spearman correlation (rank-based):
+
+$$
+\rho_S=\rho_P(\mathrm{rank}(s),\mathrm{rank}(y))
+$$
+
+ROC quantities:
+
+$$
+\mathrm{TPR}=\frac{\mathrm{TP}}{\mathrm{TP+FN}},
+\quad
+\mathrm{FPR}=\frac{\mathrm{FP}}{\mathrm{FP+TN}}
+$$
+
+Precision-recall quantities:
+
+$$
+\mathrm{Precision}=\frac{\mathrm{TP}}{\mathrm{TP+FP}},
+\quad
+\mathrm{Recall}=\frac{\mathrm{TP}}{\mathrm{TP+FN}}
+$$
+
+Areas:
+
+$$
+\mathrm{AUROC}=\int_0^1 \mathrm{TPR}(u)\,d(\mathrm{FPR}(u)),
+\quad
+\mathrm{PR\text{-}AUC}=\int_0^1 \mathrm{Precision}(r)\,d(\mathrm{Recall}(r))
+$$
+
+---
+
+## 11) Calibration Quality
+
+Calibration checks whether predicted risk matches empirical frequency.
 
 Expected Calibration Error:
-\[
-\mathrm{ECE}=\sum_{m=1}^{M}\frac{|B_m|}{N}
+
+$$
+\mathrm{ECE}=
+\sum_{m=1}^{M}\frac{|B_m|}{N}
 \left|\mathrm{acc}(B_m)-\mathrm{conf}(B_m)\right|
-\]
+$$
 
-Brier Score:
-\[
+Brier score:
+
+$$
 \mathrm{Brier}=\frac{1}{N}\sum_{i=1}^{N}(s_i-y_i)^2
-\]
+$$
 
-Lower ECE/Brier indicates better probabilistic reliability.
-
----
-
-## 🧪 Testing
-
-Run tests/notebook validation:
-
-```bash
-python -m pytest -q
-```
-
-or open:
-
-- `test.ipynb` for full integration walkthrough.
+Lower ECE and Brier indicate more trustworthy risk probabilities.
 
 ---
 
-## 🌍 Turkish & English Support
+## 12) Sensitivity and Ablation Logic
 
-The project includes built-in loaders and samples for:
+To quantify each signal’s contribution:
 
-- Turkish Q&A / hallucination checks / math-style prompts
-- English Q&A / TruthfulQA-style subsets
+$$
+\Delta_j = \mathcal{M}(\text{all features})-\mathcal{M}(\text{without feature }j)
+$$
 
----
-
-## 🖼️ Recommended Images to Add
-
-Create these files for a professional README:
-
-- `docs/assets/pipeline-overview.png` → architecture diagram
-- `docs/assets/example-report.png` → sample JSON/report screenshot
-- `docs/assets/metric-distribution.png` → score distribution chart
+where \(\mathcal{M}\) can be AUROC, PR-AUC, or calibration quality.  
+Large \(\Delta_j\) implies feature \(j\) has strong explanatory power.
 
 ---
 
-## 🛣️ Roadmap
+## 13) Computational Profile (Theoretical)
 
-- [ ] Add benchmark scripts (TruthfulQA, GSM8K-style sets)
-- [ ] Add REST API demo for real-time scoring
-- [ ] Add Docker support
-- [ ] Add CI workflow for automated tests
-- [ ] Add richer semantic similarity (embedding-based)
+For \(n\) responses, average token length \(T\), vocabulary size \(|V|\):
 
----
-
-## 🤝 Contributing
-
-Contributions are welcome.
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Open a Pull Request
+- Black-box entropy: \(O(n)\)
+- Gray-box NLL aggregation: \(O(nT)\)
+- White-box entropy (full distribution): \(O(nT|V|)\)
+- Similarity aggregation: depends on string/token operations, typically \(O(nT)\) to \(O(nT\log T)\)
 
 ---
 
-## 📄 License
+## 14) Practical Interpretation Guide
 
-This project is licensed under the MIT License (or your preferred license).
+- High \(U_{\text{black}}\) + high \(U_{\text{white}}\): unstable and uncertain generation.
+- Low \(S_{\text{gt}}\): poor factual agreement with reference.
+- High \(H(x)\) + poor calibration: strong candidate for review/rejection.
+- Medium \(H(x)\): prefer fallback retrieval/tool verification before final output.
 
 ---
 
-## 📬 Contact
+## 15) Recommended Visual Assets (for a Rich GitHub Page)
 
-If you use this project in research or production, please open an issue or discussion for feedback.
-````
+Add these images to `docs/assets/`:
+
+1. `01_system_overview.png` — full pipeline diagram  
+2. `02_uncertainty_layers.png` — black/gray/white comparison  
+3. `03_score_fusion.png` — weighted fusion illustration  
+4. `04_thresholding.png` — risk-band thresholds  
+5. `05_roc_pr.png` — ROC and PR curves  
+6. `06_calibration.png` — reliability diagram + ECE
+
+---
+
+## License
+
+MIT
+
+---
+
+## Citation
+
+If this framework is used in research or production, please cite the repository and include the project URL.
