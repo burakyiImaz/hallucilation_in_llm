@@ -1,367 +1,354 @@
-Aşağıdaki metni **direkt README.md** içine yapıştırabilirsin.  
-(Python örneği yok, tamamen matematiksel akış ve görsel odaklı.)
-
-# Hallucination Detection in LLMs: A Mathematical Framework
+# Hallucination Detection in LLMs  
+### A Mathematical, Multi-Signal Reliability Framework
 
 [![Python](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)  
-[![Status](https://img.shields.io/badge/Status-Research%20Grade-success.svg)](#)  
+[![Status](https://img.shields.io/badge/Status-Active-success.svg)](#)  
+[![Focus](https://img.shields.io/badge/Focus-Hallucination%20Risk-orange.svg)](#)  
 [![License](https://img.shields.io/badge/License-MIT-lightgrey.svg)](#license)
 
-A mathematically grounded framework for quantifying hallucination risk in Large Language Models (LLMs) via multi-level uncertainty signals and statistical validation.
+This repository presents a mathematically grounded framework for measuring hallucination risk in Large Language Models (LLMs) via **black-box**, **gray-box**, and **white-box** uncertainty signals, then mapping them into a calibrated risk score.
 
 ---
 
-## 🖼 Visual Summary
+## Visual Overview
+
+> Place these files under `docs/assets/` for full GitHub rendering.
 
 ![System Overview](docs/assets/01_system_overview.png)  
 ![Uncertainty Layers](docs/assets/02_uncertainty_layers.png)  
-![Score Fusion](docs/assets/03_score_fusion.png)  
-![Thresholding & Risk Bands](docs/assets/04_thresholding.png)  
-![ROC and PR Curves](docs/assets/05_roc_pr.png)  
-![Calibration Plot](docs/assets/06_calibration.png)
+![Fusion and Thresholding](docs/assets/03_fusion_thresholds.png)  
+![ROC and PR Curves](docs/assets/04_roc_pr.png)  
+![Calibration Diagram](docs/assets/05_calibration.png)
 
 ---
 
-## 1) Problem Definition
+## End-to-End Flow
+
+```mermaid
+flowchart LR
+    A[Prompt x] --> B[Response Sampling R = r1...rn]
+    B --> C1[Black-Box Signal U_black]
+    B --> C2[Gray-Box Signal U_gray]
+    B --> C3[White-Box Signal U_white]
+    B --> C4[Ground-Truth Agreement S_gt]
+    C1 --> D[Normalization]
+    C2 --> D
+    C3 --> D
+    C4 --> D
+    D --> E[Fusion Function H(x)]
+    E --> F[Calibration H_hat(x)]
+    F --> G[Risk Bands: LOW MEDIUM HIGH CRITICAL]
+```
+
+---
+
+## 1) Formal Problem Statement
 
 Given:
-- a prompt \(x\),
-- a set of model outputs \(R=\{r_1,\dots,r_n\}\),
-- optional token-level distributions/logits,
-- optional ground-truth answer \(g\),
+- prompt \(x\),
+- sampled responses \(R=\{r_1,\ldots,r_n\}\),
+- optional token probability/logit traces,
+- optional ground truth \(g\),
 
-we estimate a hallucination-risk function:
-
-$$
+estimate hallucination risk:
+\[
 H(x)\in[0,1]
-$$
-
-where:
-- \(H(x)\approx 0\): low hallucination risk,
-- \(H(x)\approx 1\): high hallucination risk.
-
----
-
-## 2) End-to-End Mathematical Flow
-
-**Input** \(\rightarrow\) **Uncertainty extraction** \(\rightarrow\) **Normalization** \(\rightarrow\) **Fusion** \(\rightarrow\) **Calibration** \(\rightarrow\) **Risk decision**
-
-Formally:
-
-$$
-x \mapsto \Big(U_{\text{black}},U_{\text{gray}},U_{\text{white}},S_{\text{gt}}\Big)
-\mapsto \tilde{\mathbf{z}}
-\mapsto H(x)
-\mapsto \hat{H}(x)
-\mapsto \text{Risk Level}
-$$
-
-where:
-- \(U_{\text{black}}\): response-level inconsistency,
-- \(U_{\text{gray}}\): probability-space uncertainty,
-- \(U_{\text{white}}\): token/logit uncertainty,
-- \(S_{\text{gt}}\): ground-truth agreement score.
+\]
+with:
+- \(H(x)\approx 0\): reliable output behavior,
+- \(H(x)\approx 1\): high hallucination likelihood.
 
 ---
 
-## 3) Signal Layer I — Black-Box Uncertainty
+## 2) Signal Layer I: Black-Box Uncertainty
 
-No internals required; only response samples.
+Black-box uses only generated outputs.
 
-Let empirical response frequency be:
+Empirical response distribution:
+\[
+\hat{p}(r)=\frac{\mathrm{count}(r)}{n}
+\]
 
-$$
-\hat{p}(r)=\frac{\text{count}(r)}{n}
-$$
-
-Entropy-based inconsistency:
-
-$$
-U_{\text{black}}=-\sum_{r\in R_{\text{unique}}}\hat{p}(r)\log\hat{p}(r)
-$$
+Response entropy:
+\[
+U_{\mathrm{black}}=-\sum_{r\in R_{\mathrm{unique}}}\hat{p}(r)\log\hat{p}(r)
+\]
 
 Normalized entropy:
-
-$$
-\tilde{U}_{\text{black}}=
-\frac{U_{\text{black}}}{\log|R_{\text{unique}}|+\varepsilon}
-$$
+\[
+\tilde{U}_{\mathrm{black}}=
+\frac{U_{\mathrm{black}}}{\log\!\big(|R_{\mathrm{unique}}|\big)+\varepsilon}
+\]
 
 Interpretation:
-- low entropy \(\Rightarrow\) consistent answers,
-- high entropy \(\Rightarrow\) unstable generation behavior.
+- low entropy: stable responses,
+- high entropy: inconsistent generations and higher uncertainty.
 
 ---
 
-## 4) Signal Layer II — Gray-Box Uncertainty
+## 3) Signal Layer II: Gray-Box Uncertainty
 
-Uses token log-probabilities (without full internal state).
+Gray-box uses token-level log-probabilities without full model internals.
 
-For response \(r_i=(w_1,\dots,w_T)\):
+For \(r_i=(w_1,\ldots,w_T)\):
+\[
+\log P(r_i\mid x)=\sum_{t=1}^{T}\log P\!\left(w_t\mid w_{1:t-1},x\right)
+\]
 
-$$
-\log P(r_i\mid x)=\sum_{t=1}^T \log P(w_t\mid w_{<t},x)
-$$
-
-Average negative log-likelihood:
-
-$$
-\text{NLL}(r_i)=-\frac{1}{T}\sum_{t=1}^T\log P(w_t\mid w_{<t},x)
-$$
+Average token negative log-likelihood:
+\[
+\mathrm{NLL}(r_i)=
+-\frac{1}{T}\sum_{t=1}^{T}\log P\!\left(w_t\mid w_{1:t-1},x\right)
+\]
 
 Perplexity:
-
-$$
-\text{PPL}(r_i)=e^{\text{NLL}(r_i)}
-$$
+\[
+\mathrm{PPL}(r_i)=\exp\!\left(\mathrm{NLL}(r_i)\right)
+\]
 
 Confidence proxy:
+\[
+C_{\mathrm{gray}}(r_i)=\exp\!\left(-\mathrm{NLL}(r_i)\right)
+\]
 
-$$
-C_{\text{gray}}(r_i)=e^{-\text{NLL}(r_i)}
-$$
-
-Aggregate uncertainty:
-
-$$
-U_{\text{gray}}=1-\frac{1}{n}\sum_{i=1}^n C_{\text{gray}}(r_i)
-$$
+Aggregate gray uncertainty:
+\[
+U_{\mathrm{gray}}=
+1-\frac{1}{n}\sum_{i=1}^{n}C_{\mathrm{gray}}(r_i)
+\]
 
 ---
 
-## 5) Signal Layer III — White-Box Uncertainty
+## 4) Signal Layer III: White-Box Uncertainty
 
-Uses logits/probability vectors directly.
+White-box uses logits/probability vectors directly.
 
-With logits \(z_{t,k}\), token distribution:
-
-$$
-p_t(k)=\frac{e^{z_{t,k}}}{\sum_j e^{z_{t,j}}}
-$$
+Given logits \(z_{t,k}\), token distribution:
+\[
+p_t(k)=\frac{\exp(z_{t,k})}{\sum_j \exp(z_{t,j})}
+\]
 
 Token entropy:
-
-$$
+\[
 H_t=-\sum_k p_t(k)\log p_t(k)
-$$
+\]
 
-Sequence uncertainty:
-
-$$
-U_{\text{white}}=\frac{1}{T}\sum_{t=1}^T H_t
-$$
+Sequence-level white uncertainty:
+\[
+U_{\mathrm{white}}=\frac{1}{T}\sum_{t=1}^{T}H_t
+\]
 
 Optional margin confidence:
-
-$$
+\[
 m_t=p_t(k_{(1)})-p_t(k_{(2)})
-$$
-
-where \(k_{(1)},k_{(2)}\) are top-1 and top-2 classes. Smaller \(m_t\) implies higher ambiguity.
-
----
-
-## 6) Ground-Truth Agreement Modeling
-
-For each response \(r_i\) and reference \(g\):
-
-- structural/textual similarity \(S_{\text{str}}(r_i,g)\in[0,1]\),
-- keyword overlap score \(S_{\text{kw}}(r_i,g)\in[0,1]\).
-
-Mean agreement:
-
-$$
-\bar{S}_{\text{str}}=\frac{1}{n}\sum_{i=1}^n S_{\text{str}}(r_i,g),
-\quad
-\bar{S}_{\text{kw}}=\frac{1}{n}\sum_{i=1}^n S_{\text{kw}}(r_i,g)
-$$
-
-Combined reference agreement:
-
-$$
-S_{\text{gt}}=\alpha\bar{S}_{\text{str}}+(1-\alpha)\bar{S}_{\text{kw}},\quad \alpha\in[0,1]
-$$
-
-Stability term (variance):
-
-$$
-\mathrm{Var}_{\text{sem}}=
-\frac{1}{n}\sum_{i=1}^n
-\left(S_{\text{str}}(r_i,g)-\bar{S}_{\text{str}}\right)^2
-$$
+\]
+where \(k_{(1)}\) and \(k_{(2)}\) are top-1 and top-2 token indices.
 
 ---
 
-## 7) Normalization and Feature Vector
+## 5) Ground-Truth Agreement Modeling
 
-Define feature vector:
+For response \(r_i\) and reference \(g\):
+- structural similarity \(S_{\mathrm{str}}(r_i,g)\in[0,1]\),
+- keyword overlap \(S_{\mathrm{kw}}(r_i,g)\in[0,1]\).
 
-$$
+Mean similarities:
+\[
+\bar{S}_{\mathrm{str}}=\frac{1}{n}\sum_{i=1}^{n}S_{\mathrm{str}}(r_i,g),\quad
+\bar{S}_{\mathrm{kw}}=\frac{1}{n}\sum_{i=1}^{n}S_{\mathrm{kw}}(r_i,g)
+\]
+
+Combined agreement:
+\[
+S_{\mathrm{gt}}=\alpha\bar{S}_{\mathrm{str}}+(1-\alpha)\bar{S}_{\mathrm{kw}},\quad \alpha\in[0,1]
+\]
+
+Stability proxy:
+\[
+\mathrm{Var}_{\mathrm{sem}}=
+\frac{1}{n}\sum_{i=1}^{n}
+\left(S_{\mathrm{str}}(r_i,g)-\bar{S}_{\mathrm{str}}\right)^2
+\]
+
+---
+
+## 6) Normalization and Feature Vector
+
+Signal vector:
+\[
 \mathbf{z}=
-\big(U_{\text{black}},U_{\text{gray}},U_{\text{white}},S_{\text{gt}},\mathrm{Var}_{\text{sem}}\big)
-$$
-
-Normalized vector:
-
-$$
-\tilde{\mathbf{z}}=\mathcal{N}(\mathbf{z})
-$$
-
-where \(\mathcal{N}\) may be min-max, z-score, or robust scaling.
-
----
-
-## 8) Fusion Function (Hallucination Score)
-
-A monotonic fusion:
-
-$$
-H(x)=\sigma\!\left(
-w_b\tilde{U}_{\text{black}}+
-w_g\tilde{U}_{\text{gray}}+
-w_w\tilde{U}_{\text{white}}-
-w_s\tilde{S}_{\text{gt}}+
-w_v\widetilde{\mathrm{Var}}_{\text{sem}}
-+b
+\left(
+U_{\mathrm{black}},
+U_{\mathrm{gray}},
+U_{\mathrm{white}},
+S_{\mathrm{gt}},
+\mathrm{Var}_{\mathrm{sem}}
 \right)
-$$
+\]
 
-Constraints:
-
-$$
-w_b,w_g,w_w,w_s,w_v\ge 0
-$$
-
-\(\sigma(\cdot)\) is typically sigmoid:
-
-$$
-\sigma(t)=\frac{1}{1+e^{-t}}
-$$
+Normalized features:
+\[
+\tilde{\mathbf{z}}=\mathcal{N}(\mathbf{z})
+\]
+where \(\mathcal{N}\) can be min-max, z-score, or robust scaling.
 
 ---
 
-## 9) Decision Rule and Risk Bands
+## 7) Fusion Function (Hallucination Score)
 
-Given thresholds \(0\le\tau_1<\tau_2<\tau_3\le1\):
+Weighted fusion:
+\[
+H(x)=\sigma\!\left(
+w_b\tilde{U}_{\mathrm{black}}+
+w_g\tilde{U}_{\mathrm{gray}}+
+w_w\tilde{U}_{\mathrm{white}}-
+w_s\tilde{S}_{\mathrm{gt}}+
+w_v\widetilde{\mathrm{Var}}_{\mathrm{sem}}+b
+\right)
+\]
 
+with:
+\[
+w_b,w_g,w_w,w_s,w_v\ge 0
+\]
+and sigmoid:
+\[
+\sigma(t)=\frac{1}{1+\exp(-t)}
+\]
+
+---
+
+## 8) Risk Bands and Decision Rule
+
+Given thresholds:
+\[
+0\le\tau_1<\tau_2<\tau_3\le 1
+\]
+
+Decision mapping:
 - **LOW** if \(H(x)<\tau_1\)
 - **MEDIUM** if \(\tau_1\le H(x)<\tau_2\)
 - **HIGH** if \(\tau_2\le H(x)<\tau_3\)
 - **CRITICAL** if \(H(x)\ge\tau_3\)
 
-This yields interpretable operational decisions.
-
 ---
 
-## 10) Statistical Evaluation Criteria
+## 9) Statistical Validation Metrics
 
-Let \((s_i,y_i)\) be predicted score and binary label.
+For predicted scores \(s_i\) and labels \(y_i\in\{0,1\}\):
 
-Pearson correlation:
-
-$$
+Pearson:
+\[
 \rho_P=
 \frac{\sum_i (s_i-\bar{s})(y_i-\bar{y})}
 {\sqrt{\sum_i (s_i-\bar{s})^2}\sqrt{\sum_i (y_i-\bar{y})^2}}
-$$
+\]
 
-Spearman correlation (rank-based):
+Spearman:
+\[
+\rho_S=\rho_P\big(\mathrm{rank}(s),\mathrm{rank}(y)\big)
+\]
 
-$$
-\rho_S=\rho_P(\mathrm{rank}(s),\mathrm{rank}(y))
-$$
+Thresholded predictions:
+\[
+\hat{y}_i(\tau)=\mathbf{1}[s_i\ge \tau]
+\]
 
-ROC quantities:
-
-$$
-\mathrm{TPR}=\frac{\mathrm{TP}}{\mathrm{TP+FN}},
-\quad
-\mathrm{FPR}=\frac{\mathrm{FP}}{\mathrm{FP+TN}}
-$$
-
-Precision-recall quantities:
-
-$$
-\mathrm{Precision}=\frac{\mathrm{TP}}{\mathrm{TP+FP}},
-\quad
-\mathrm{Recall}=\frac{\mathrm{TP}}{\mathrm{TP+FN}}
-$$
+Rates:
+\[
+\mathrm{TPR}=\frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FN}},\quad
+\mathrm{FPR}=\frac{\mathrm{FP}}{\mathrm{FP}+\mathrm{TN}}
+\]
+\[
+\mathrm{Precision}=\frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FP}},\quad
+\mathrm{Recall}=\frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FN}}
+\]
 
 Areas:
-
-$$
-\mathrm{AUROC}=\int_0^1 \mathrm{TPR}(u)\,d(\mathrm{FPR}(u)),
-\quad
-\mathrm{PR\text{-}AUC}=\int_0^1 \mathrm{Precision}(r)\,d(\mathrm{Recall}(r))
-$$
+\[
+\mathrm{AUROC}=\int_0^1 \mathrm{TPR}(u)\,d(\mathrm{FPR}(u))
+\]
+\[
+\mathrm{PRAUC}=\int_0^1 \mathrm{Precision}(r)\,d(\mathrm{Recall}(r))
+\]
 
 ---
 
-## 11) Calibration Quality
-
-Calibration checks whether predicted risk matches empirical frequency.
+## 10) Calibration Quality
 
 Expected Calibration Error:
-
-$$
+\[
 \mathrm{ECE}=
 \sum_{m=1}^{M}\frac{|B_m|}{N}
 \left|\mathrm{acc}(B_m)-\mathrm{conf}(B_m)\right|
-$$
+\]
 
 Brier score:
-
-$$
+\[
 \mathrm{Brier}=\frac{1}{N}\sum_{i=1}^{N}(s_i-y_i)^2
-$$
+\]
 
-Lower ECE and Brier indicate more trustworthy risk probabilities.
-
----
-
-## 12) Sensitivity and Ablation Logic
-
-To quantify each signal’s contribution:
-
-$$
-\Delta_j = \mathcal{M}(\text{all features})-\mathcal{M}(\text{without feature }j)
-$$
-
-where \(\mathcal{M}\) can be AUROC, PR-AUC, or calibration quality.  
-Large \(\Delta_j\) implies feature \(j\) has strong explanatory power.
+Lower ECE and Brier indicate more reliable risk probabilities.
 
 ---
 
-## 13) Computational Profile (Theoretical)
+## 11) Recommended Ablation Protocol
 
-For \(n\) responses, average token length \(T\), vocabulary size \(|V|\):
+To measure signal importance, remove one feature family at a time:
 
-- Black-box entropy: \(O(n)\)
-- Gray-box NLL aggregation: \(O(nT)\)
-- White-box entropy (full distribution): \(O(nT|V|)\)
-- Similarity aggregation: depends on string/token operations, typically \(O(nT)\) to \(O(nT\log T)\)
+\[
+\Delta_j=\mathcal{M}(\text{full})-\mathcal{M}(\text{without signal }j)
+\]
 
----
+where \(\mathcal{M}\in\{\mathrm{AUROC},\mathrm{PRAUC},-\mathrm{ECE}\}\).
 
-## 14) Practical Interpretation Guide
-
-- High \(U_{\text{black}}\) + high \(U_{\text{white}}\): unstable and uncertain generation.
-- Low \(S_{\text{gt}}\): poor factual agreement with reference.
-- High \(H(x)\) + poor calibration: strong candidate for review/rejection.
-- Medium \(H(x)\): prefer fallback retrieval/tool verification before final output.
+Large \(\Delta_j\) implies high contribution of signal \(j\).
 
 ---
 
-## 15) Recommended Visual Assets (for a Rich GitHub Page)
+## 12) Complexity Profile (High-Level)
 
-Add these images to `docs/assets/`:
+Let:
+- \(n\): number of responses,
+- \(T\): average response length,
+- \(|V|\): vocabulary size.
 
-1. `01_system_overview.png` — full pipeline diagram  
-2. `02_uncertainty_layers.png` — black/gray/white comparison  
-3. `03_score_fusion.png` — weighted fusion illustration  
-4. `04_thresholding.png` — risk-band thresholds  
-5. `05_roc_pr.png` — ROC and PR curves  
-6. `06_calibration.png` — reliability diagram + ECE
+Approximate costs:
+- black-box entropy: \(O(n)\),
+- gray-box NLL aggregation: \(O(nT)\),
+- white-box entropy: \(O(nT|V|)\),
+- similarity aggregation: typically \(O(nT)\) to \(O(nT\log T)\).
+
+---
+
+## 13) Practical Interpretation
+
+- High \(U_{\mathrm{black}}\) + high \(U_{\mathrm{white}}\): unstable and uncertain decoding.
+- Low \(S_{\mathrm{gt}}\): weak factual alignment with reference.
+- High \(H(x)\): prioritize retrieval/tool-checking or human review.
+- Medium \(H(x)\): use fallback verification before final output.
+
+---
+
+## 14) Visual Assets Checklist
+
+For a rich repository page, include:
+
+- `docs/assets/01_system_overview.png`
+- `docs/assets/02_uncertainty_layers.png`
+- `docs/assets/03_fusion_thresholds.png`
+- `docs/assets/04_roc_pr.png`
+- `docs/assets/05_calibration.png`
+
+---
+
+## 15) Repository Scope
+
+Current scope includes:
+- multi-level uncertainty decomposition,
+- score fusion and risk interpretation,
+- correlation/discrimination/calibration evaluation,
+- multilingual orientation (Turkish + English settings).
 
 ---
 
@@ -373,4 +360,5 @@ MIT
 
 ## Citation
 
-If this framework is used in research or production, please cite the repository and include the project URL.
+If used in research or production, please cite this repository and link the project URL.
+````
