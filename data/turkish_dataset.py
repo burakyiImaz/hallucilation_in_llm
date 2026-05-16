@@ -1,140 +1,99 @@
 """
-Turkish Datasets Module - Test datasets and sample data for Turkish NLP
+Turkish Dataset Management
+Handles Turkish language datasets for hallucination detection
 """
-
-from typing import List, Dict
+from __future__ import annotations
+from typing import Dict, List, Optional, Any
+try:
+    from datasets import Dataset, load_dataset
+    HAS_DATASETS = True
+except ImportError:
+    HAS_DATASETS = False
+    Dataset = Any  # Type alias when datasets not available
 
 
 class TurkishDatasets:
-    """Turkish benchmark datasets and test samples"""
+    """Turkish language dataset manager"""
     
-    @staticmethod
-    def sample_qa_dataset() -> List[Dict]:
-        """
-        Sample Turkish Q&A dataset for quick testing
-        
-        Returns:
-            List of Turkish Q&A samples
-        """
-        return [
-            {
-                'id': 'tr_1',
-                'question': 'Türkiye\'nin başkenti neresidir?',
-                'answer': 'Ankara',
-                'category': 'coğrafya',
-                'source': 'sample_tr'
-            },
-            {
-                'id': 'tr_2',
-                'question': 'Osmanlı İmparatorluğu ne zaman kuruldu?',
-                'answer': '1299',
-                'category': 'tarih',
-                'source': 'sample_tr'
-            },
-            {
-                'id': 'tr_3',
-                'question': 'Atatürk kimdir?',
-                'answer': 'Türkiye\'nin kurucusu ve ilk cumhubaşkanı',
-                'category': 'tarih',
-                'source': 'sample_tr'
-            },
-            {
-                'id': 'tr_4',
-                'question': 'Boğaz Köprüsü hangi iki kıtayı birleştirir?',
-                'answer': 'Asya ve Avrupa',
-                'category': 'coğrafya',
-                'source': 'sample_tr'
-            },
-            {
-                'id': 'tr_5',
-                'question': 'Türkçe kaç tane ünlü harf vardır?',
-                'answer': '8',
-                'category': 'dil',
-                'source': 'sample_tr'
-            }
-        ]
-    
-    @staticmethod
-    def sample_hallucination_test_set() -> List[Dict]:
-        """
-        Turkish hallucination detection test set
-        
-        Returns:
-            List of samples with ground truth for hallucination detection
-        """
-        return [
-            {
-                'question': 'Paris\'in başkenti nedir?',
-                'model_answer': 'Paris Fransa\'nın başkentidir',
-                'ground_truth': True,
-                'expected_hallucination': False
-            },
-            {
-                'question': 'Ay\'ın kaç ay vardır?',
-                'model_answer': 'Ay\'ın 12 ayı vardır',
-                'ground_truth': False,
-                'expected_hallucination': True
-            },
-            {
-                'question': 'Einstein kimdir?',
-                'model_answer': 'Albert Einstein fizikçi ve matematikçidir',
-                'ground_truth': True,
-                'expected_hallucination': False
-            },
-            {
-                'question': 'Dünya\'nın çevresi nedir?',
-                'model_answer': 'Dünya\'nın çevresi 40.075 km\'dir',
-                'ground_truth': True,
-                'expected_hallucination': False
-            }
-        ]
-    
-    @staticmethod
-    def sample_math_dataset() -> List[Dict]:
-        """
-        Turkish math problem dataset (Turkish GSM8K)
-        
-        Returns:
-            List of Turkish math problems
-        """
-        return [
-            {
-                'id': 'tr_math_1',
-                'problem': 'Ali 5 elma aldı, sonra 3 elma daha aldı. Ali\'nin toplam kaç elmasi var?',
-                'answer': '8',
-                'difficulty': 'easy'
-            },
-            {
-                'id': 'tr_math_2',
-                'problem': 'Bir kitap 25 lira, başka bir kitap ise 35 lira tutuyor. Iki kitabı alırsak toplam ne kadar para gerekir?',
-                'answer': '60',
-                'difficulty': 'easy'
-            },
-            {
-                'id': 'tr_math_3',
-                'problem': 'Bir sınıfta 30 öğrenci var. %20\'si kız ise, kaç kız öğrenci vardır?',
-                'answer': '6',
-                'difficulty': 'medium'
-            }
-        ]
-    
-    @staticmethod
-    def dataset_info() -> Dict:
-        """Get information about available Turkish datasets"""
-        return {
-            'available_datasets': [
-                'sample_qa_dataset',
-                'sample_hallucination_test_set',
-                'sample_math_dataset'
-            ],
-            'supported_sources': [
-                'TurQA',
-                'TRC-QA',
-                'Turkish GSM8K',
-                'Turkish MMLU',
-                'XQuAD-TR'
-            ],
-            'total_samples': len(TurkishDatasets.sample_qa_dataset()) + 
-                           len(TurkishDatasets.sample_hallucination_test_set()) +
-                           len(TurkishDatasets.sample_math_dataset())
+    AVAILABLE_DATASETS = {
+        "wikipedia_turkish_qa": {
+            "repo": "Quardo/wikipedia-turkish-qa",
+            "description": "Turkish Wikipedia Q&A dataset",
+            "task": "qa"
+        },
+        "imdb_turkish_qa": {
+            "repo": "FurkyT/IMDB-Turkish-QA",
+            "description": "Turkish IMDb question-answer dataset",
+            "task": "qa"
+        },
+        "turkish_nli": {
+            "repo": "Turkish-NLI/legal_nli_TR_V1",
+            "description": "Turkish Natural Language Inference dataset",
+            "task": "nli"
         }
+    }
+    
+    def __init__(self, cache_dir: str = "data/.cache"):
+        """Initialize Turkish dataset manager"""
+        if not HAS_DATASETS:
+            raise ImportError("datasets library required. Install: pip install datasets")
+        self.cache_dir = cache_dir
+    
+    def list_available(self) -> Dict:
+        """List all available Turkish datasets"""
+        return self.AVAILABLE_DATASETS
+    
+    def load(self, dataset_name: str, split: str = "train", sample_size: Optional[int] = None) -> Any:
+        """
+        Load Turkish dataset
+        
+        Args:
+            dataset_name: Name of dataset
+            split: Dataset split (train, validation, test)
+            sample_size: Number of samples to return (None = all)
+            
+        Returns:
+            Dataset object
+        """
+        if dataset_name not in self.AVAILABLE_DATASETS:
+            raise ValueError(f"Unknown dataset: {dataset_name}")
+        
+        repo = self.AVAILABLE_DATASETS[dataset_name]["repo"]
+        print(f"Loading Turkish dataset: {dataset_name} from {repo}")
+        
+        dataset = load_dataset(repo, split=split, cache_dir=self.cache_dir)
+        
+        if sample_size and len(dataset) > sample_size:
+            dataset = dataset.shuffle(seed=42).select(range(sample_size))
+        
+        return dataset
+    
+    def load_all(self, split: str = "train") -> Dict[str, Any]:
+        """Load all available Turkish datasets"""
+        datasets = {}
+        for name in self.AVAILABLE_DATASETS.keys():
+            try:
+                datasets[name] = self.load(name, split=split)
+            except Exception as e:
+                print(f"Warning: Could not load {name}: {e}")
+        return datasets
+    
+    def get_info(self, dataset_name: str) -> Dict:
+        """Get metadata about a dataset"""
+        return self.AVAILABLE_DATASETS.get(dataset_name, {})
+    
+    def combine_datasets(self, dataset_names: List[str], split: str = "train") -> Any:
+        """Combine multiple Turkish datasets"""
+        datasets = []
+        for name in dataset_names:
+            try:
+                ds = self.load(name, split=split)
+                datasets.append(ds)
+            except Exception as e:
+                print(f"Warning: Skipping {name}: {e}")
+        
+        if not datasets:
+            raise ValueError("No datasets loaded successfully")
+        
+        from datasets import concatenate_datasets
+        return concatenate_datasets(datasets)
