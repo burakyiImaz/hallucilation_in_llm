@@ -1,141 +1,155 @@
 """
-Dataset Loader - Handles loading and processing of Turkish and English datasets
+Dataset loader utility for HuggingFace datasets
 """
-
-import pandas as pd
-import json
+from __future__ import annotations
 import os
-from typing import List, Dict, Optional
+from pathlib import Path
+from typing import Dict, List, Optional, Union, Any
+import json
+
+try:
+    import yaml
+    HAS_YAML = True
+except ImportError:
+    HAS_YAML = False
+
+try:
+    from datasets import load_dataset
+    HAS_DATASETS = True
+except ImportError:
+    HAS_DATASETS = False
+
+# Type aliases
+Dataset = Any  # Will be properly typed when datasets is available
 
 
 class DatasetLoader:
-    """Load and manage Turkish and English benchmark datasets"""
+    """
+    Central loader for Turkish and English datasets from HuggingFace Hub
+    """
     
-    @staticmethod
-    def load_csv(filepath: str, sample_size: Optional[int] = None) -> List[Dict]:
+    def __init__(self, config_path: str = "data/config.json"):
+        """Initialize dataset loader with config"""
+        self.config_path = config_path
+        self.config = self._load_config()
+        self.cache_dir = self.config.get("paths", {}).get("cache", "data/.cache")
+        self._ensure_paths()
+        
+    def _load_config(self) -> Dict:
+        """Load configuration from YAML"""
+        if not os.path.exists(self.config_path):
+            return {}
+        
+        try:
+            if HAS_YAML:
+                with open(self.config_path, 'r', encoding='utf-8') as f:
+                    return yaml.safe_load(f)
+        except Exception as e:
+            print(f"Warning: Could not load YAML config: {e}")
+        
+        # Fallback to JSON if YAML not available
+        json_path = self.config_path.replace('.yaml', '.json')
+        if os.path.exists(json_path):
+            with open(json_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        
+        return {}
+    
+    def _ensure_paths(self):
+        """Create necessary directories"""
+        for path_key in ["raw_data", "processed_data", "cache"]:
+            path = self.config.get("paths", {}).get(path_key)
+            if path:
+                Path(path).mkdir(parents=True, exist_ok=True)
+    
+    def load_turkish_dataset(self, dataset_name: str, split: Optional[str] = None) -> Dataset:
         """
-        Load dataset from CSV file
+        Load Turkish dataset from HuggingFace Hub
         
         Args:
-            filepath: Path to CSV file
-            sample_size: Maximum number of samples to load
+            dataset_name: Name of dataset (e.g., "squad_tr", "tquac")
+            split: Dataset split to load
             
         Returns:
-            List of dictionaries with dataset samples
+            Dataset object
         """
-        try:
-            df = pd.read_csv(filepath)
-            
-            if sample_size:
-                df = df.head(sample_size)
-            
-            return df.to_dict('records')
-        except Exception as e:
-            print(f"Error loading CSV {filepath}: {e}")
-            return []
+        if not HAS_DATASETS:
+            raise ImportError("datasets library not installed. Install with: pip install datasets")
+        
+        config = self.config.get("datasets", {}).get("turkish", {}).get(dataset_name, {})
+        repo = config.get("repo")
+        split = split or config.get("split", "train")
+        
+        if not repo:
+            raise ValueError(f"Dataset '{dataset_name}' not found in config")
+        
+        print(f"Loading Turkish dataset: {repo} ({split})")
+        dataset = load_dataset(repo, split=split, cache_dir=self.cache_dir)
+        
+        return dataset
     
-    @staticmethod
-    def load_json(filepath: str, sample_size: Optional[int] = None) -> List[Dict]:
+    def load_english_dataset(self, dataset_name: str, split: Optional[str] = None) -> Dataset:
         """
-        Load dataset from JSON file
+        Load English dataset from HuggingFace Hub
         
         Args:
-            filepath: Path to JSON file
-            sample_size: Maximum number of samples to load
+            dataset_name: Name of dataset (e.g., "halueval", "fever")
+            split: Dataset split to load
             
         Returns:
-            List of dictionaries with dataset samples
+            Dataset object
         """
-        try:
-            with open(filepath, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            
-            if isinstance(data, list):
-                if sample_size:
-                    return data[:sample_size]
-                return data
-            return []
-        except Exception as e:
-            print(f"Error loading JSON {filepath}: {e}")
-            return []
-    
-    @staticmethod
-    def load_jsonl(filepath: str, sample_size: Optional[int] = None) -> List[Dict]:
-        """
-        Load dataset from JSONL file
+        if not HAS_DATASETS:
+            raise ImportError("datasets library not installed. Install with: pip install datasets")
         
-        Args:
-            filepath: Path to JSONL file
-            sample_size: Maximum number of samples to load
-            
-        Returns:
-            List of dictionaries with dataset samples
-        """
-        try:
-            data = []
-            with open(filepath, 'r', encoding='utf-8') as f:
-                for i, line in enumerate(f):
-                    if sample_size and i >= sample_size:
-                        break
-                    data.append(json.loads(line))
-            return data
-        except Exception as e:
-            print(f"Error loading JSONL {filepath}: {e}")
-            return []
-    
-    @staticmethod
-    def load_dataset(filepath: str, sample_size: Optional[int] = None) -> List[Dict]:
-        """
-        Auto-detect file format and load dataset
+        config = self.config.get("datasets", {}).get("english", {}).get(dataset_name, {})
+        repo = config.get("repo")
+        split = split or config.get("split", "train")
         
-        Args:
-            filepath: Path to dataset file
-            sample_size: Maximum number of samples to load
-            
-        Returns:
-            List of dictionaries with dataset samples
-        """
-        if not os.path.exists(filepath):
-            print(f"File not found: {filepath}")
-            return []
+        if not repo:
+            raise ValueError(f"Dataset '{dataset_name}' not found in config")
         
-        if filepath.endswith('.csv'):
-            return DatasetLoader.load_csv(filepath, sample_size)
-        elif filepath.endswith('.jsonl'):
-            return DatasetLoader.load_jsonl(filepath, sample_size)
-        elif filepath.endswith('.json'):
-            return DatasetLoader.load_json(filepath, sample_size)
-        else:
-            print(f"Unsupported file format: {filepath}")
-            return []
+        print(f"Loading English dataset: {repo} ({split})")
+        dataset = load_dataset(repo, split=split, cache_dir=self.cache_dir)
+        
+        return dataset
     
-    @staticmethod
-    def save_to_csv(data: List[Dict], filepath: str):
-        """Save dataset to CSV file"""
-        try:
-            df = pd.DataFrame(data)
-            df.to_csv(filepath, index=False, encoding='utf-8')
-            print(f"✓ Data saved to {filepath}")
-        except Exception as e:
-            print(f"Error saving CSV: {e}")
+    def load_all_datasets(self) -> Dict[str, Dict[str, Dataset]]:
+        """Load all configured datasets"""
+        datasets = {
+            "turkish": {},
+            "english": {}
+        }
+        
+        # Load Turkish datasets
+        for dataset_name in self.config.get("datasets", {}).get("turkish", {}).keys():
+            try:
+                datasets["turkish"][dataset_name] = self.load_turkish_dataset(dataset_name)
+            except Exception as e:
+                print(f"Error loading {dataset_name}: {e}")
+        
+        # Load English datasets
+        for dataset_name in self.config.get("datasets", {}).get("english", {}).keys():
+            try:
+                datasets["english"][dataset_name] = self.load_english_dataset(dataset_name)
+            except Exception as e:
+                print(f"Error loading {dataset_name}: {e}")
+        
+        return datasets
     
-    @staticmethod
-    def save_to_json(data: List[Dict], filepath: str):
-        """Save dataset to JSON file"""
-        try:
-            with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(data, f, indent=2, ensure_ascii=False)
-            print(f"✓ Data saved to {filepath}")
-        except Exception as e:
-            print(f"Error saving JSON: {e}")
+    def get_dataset_info(self, language: str, dataset_name: str) -> Dict:
+        """Get configuration info for a dataset"""
+        return self.config.get("datasets", {}).get(language, {}).get(dataset_name, {})
     
-    @staticmethod
-    def save_to_jsonl(data: List[Dict], filepath: str):
-        """Save dataset to JSONL file"""
-        try:
-            with open(filepath, 'w', encoding='utf-8') as f:
-                for item in data:
-                    f.write(json.dumps(item, ensure_ascii=False) + '\n')
-            print(f"✓ Data saved to {filepath}")
-        except Exception as e:
-            print(f"Error saving JSONL: {e}")
+    def save_dataset(self, dataset: Dataset, output_path: str):
+        """Save dataset to disk"""
+        Path(output_path).mkdir(parents=True, exist_ok=True)
+        dataset.save_to_disk(output_path)
+        print(f"Dataset saved to {output_path}")
+    
+    def load_from_disk(self, path: str) -> Dataset:
+        """Load dataset from disk"""
+        if not HAS_DATASETS:
+            raise ImportError("datasets library not installed")
+        from datasets import load_from_disk
+        return load_from_disk(path)
