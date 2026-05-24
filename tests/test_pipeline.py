@@ -20,7 +20,6 @@ class MockModel:
 def test_pipeline_runner_basic_flow():
     model = MockModel()
 
-    # uncertainty module that returns whitebox-like metrics
     def wb_builder(output):
         class M:
             def compute(self_inner):
