@@ -16,9 +16,7 @@ from transformers import pipeline
 from tqdm.auto import tqdm
 
 
-def default_datasets():
-    # Use a curated set of high-quality benchmarks
-    return [
+def default_datasets():    return [
         ("squad_v2", "qa", "squad_v2"),
         ("fever", "fact_verification", "fever"),
         ("natural_questions", "qa", "natural_questions"),
@@ -37,10 +35,8 @@ def translate_texts(texts, translator, batch_size=16):
 
 
 def sample_and_save(hf_name, task, sample_size, out_dir, translator, seed, stream=False):
-    # Load dataset; if stream=True use streaming to avoid large disk usage
     if stream:
         ds_iter = load_dataset(hf_name, split='train', streaming=True)
-        # collect first sample_size examples
         records_list = []
         for i, ex in enumerate(ds_iter):
             if i >= sample_size:
@@ -48,7 +44,6 @@ def sample_and_save(hf_name, task, sample_size, out_dir, translator, seed, strea
             records_list.append(ex)
         ds = records_list
     else:
-        # Try common splits in order
         for split_try in ('train', 'validation', 'test'):
             try:
                 ds = load_dataset(hf_name, split=split_try)
@@ -56,7 +51,6 @@ def sample_and_save(hf_name, task, sample_size, out_dir, translator, seed, strea
             except Exception:
                 ds = None
         if ds is None:
-            # try loading default split
             ds = load_dataset(hf_name)
         ds = ds.shuffle(seed=seed)
         ds = ds.select(range(min(sample_size, len(ds))))
@@ -86,12 +80,12 @@ def sample_and_save(hf_name, task, sample_size, out_dir, translator, seed, strea
             records.append({'document': doc, 'summary': summary})
             to_translate.extend([doc, summary])
         else:
-            # fallback: include entire example as text field
+
             text = ex.get('text') or json.dumps(ex)
             records.append({'text': text})
             to_translate.append(text)
 
-    # translate unique texts to save time (if translator provided)
+
     mapping = {}
     if translator is not None:
         unique_texts = list(dict.fromkeys([t for t in to_translate if t]))
@@ -100,14 +94,14 @@ def sample_and_save(hf_name, task, sample_size, out_dir, translator, seed, strea
             translated = translate_texts(unique_texts, translator)
         mapping = {u: t for u, t in zip(unique_texts, translated)}
 
-    # write english jsonl
+
     out_dir.mkdir(parents=True, exist_ok=True)
     english_path = out_dir / 'data.jsonl'
     with english_path.open('w', encoding='utf-8') as fe:
         for e in records:
             fe.write(json.dumps(e, ensure_ascii=False) + '\n')
 
-    # if translator provided, also write turkish translations aligned
+
     if translator is not None:
         turkish_records = []
         for rec in records:
@@ -130,7 +124,7 @@ def sample_and_save(hf_name, task, sample_size, out_dir, translator, seed, strea
             for t in turkish_records:
                 ft.write(json.dumps(t, ensure_ascii=False) + '\n')
 
-    # dataset_info.json
+
     info = {
         'citation': '',
         'description': f'Sampled {len(records)} examples from {hf_name} for task {task}.',
