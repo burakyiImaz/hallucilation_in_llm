@@ -9,7 +9,7 @@ try:
     HAS_DATASETS = True
 except ImportError:
     HAS_DATASETS = False
-    Dataset = Any  # Type alias when datasets not available
+    Dataset = Any  
 
 
 class TurkishDatasets:

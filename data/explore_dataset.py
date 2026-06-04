@@ -1,11 +1,9 @@
-#!/usr/bin/env python3
 """
 Interactive dataset exploration and testing utility
 """
 import sys
 from pathlib import Path
 
-# Ensure the parent directory is in the path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
@@ -121,15 +119,12 @@ def main():
     """Main exploration tool"""
     print("\n🔍 Dataset Infrastructure Explorer\n")
     
-    # Test imports
     if not test_imports():
         return
     
-    # Explore datasets
     explore_turkish_datasets()
     explore_english_datasets()
     
-    # Print usage
     print_usage_examples()
     
     print("\n" + "="*60)

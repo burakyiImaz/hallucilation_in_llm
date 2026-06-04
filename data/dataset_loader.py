@@ -19,8 +19,7 @@ try:
 except ImportError:
     HAS_DATASETS = False
 
-# Type aliases
-Dataset = Any  # Will be properly typed when datasets is available
+Dataset = Any  
 
 
 class DatasetLoader:
@@ -47,7 +46,7 @@ class DatasetLoader:
         except Exception as e:
             print(f"Warning: Could not load YAML config: {e}")
         
-        # Fallback to JSON if YAML not available
+
         json_path = self.config_path.replace('.yaml', '.json')
         if os.path.exists(json_path):
             with open(json_path, 'r', encoding='utf-8') as f:
@@ -121,14 +120,12 @@ class DatasetLoader:
             "english": {}
         }
         
-        # Load Turkish datasets
         for dataset_name in self.config.get("datasets", {}).get("turkish", {}).keys():
             try:
                 datasets["turkish"][dataset_name] = self.load_turkish_dataset(dataset_name)
             except Exception as e:
                 print(f"Error loading {dataset_name}: {e}")
         
-        # Load English datasets
         for dataset_name in self.config.get("datasets", {}).get("english", {}).keys():
             try:
                 datasets["english"][dataset_name] = self.load_english_dataset(dataset_name)

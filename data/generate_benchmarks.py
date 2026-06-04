@@ -153,7 +153,6 @@ def main():
     out_root = Path(args.output_dir)
     out_root.mkdir(parents=True, exist_ok=True)
 
-    # prepare translator pipeline unless disabled
     translator = None
     if not args.no_translate:
         print('Loading translation model (Helsinki-NLP/opus-mt-en-tr)...')
