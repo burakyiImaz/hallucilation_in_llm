@@ -81,7 +81,7 @@ class HFModel:
             )
 
             sequences = outputs.sequences
-            scores = outputs.scores  # tuple(seq_len) of (batch, vocab)
+            scores = outputs.scores  
 
             responses = []
             token_ids_list = []
@@ -102,7 +102,7 @@ class HFModel:
 
 
             if scores is not None and len(scores) > 0:
-                # (seq_len, batch, vocab) -> (batch, seq_len, vocab)
+
                 stacked_scores = torch.stack(scores, dim=0).permute(1, 0, 2)
                 for i in range(num_samples):
                     sample_logits = stacked_scores[i]
