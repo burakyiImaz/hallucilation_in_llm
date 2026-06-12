@@ -198,7 +198,6 @@ class StatisticalAnalyzer:
             responses, ground_truth_answer
         )
         
-        # Average keyword overlap across all responses
         keyword_overlaps = []
         string_sims = []
         for response in responses:
