@@ -182,7 +182,6 @@ class StatisticalAnalyzer:
                 "semantic_variance": 0.0
             }
         
-        # Handle ground_truth_answer as string or list
         if isinstance(ground_truth_answer, list):
             ground_truth_answer = " ".join(str(x) for x in ground_truth_answer)
         
