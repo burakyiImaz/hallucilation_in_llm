@@ -1,9 +1,11 @@
+#!/usr/bin/env python3
 """
 Interactive dataset exploration and testing utility
 """
 import sys
 from pathlib import Path
 
+# Ensure the parent directory is in the path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 try:
@@ -15,7 +17,7 @@ except ImportError as e:
 
 def test_imports():
     """Test that all modules can be imported"""
-    print(" Testing module imports...")
+    print("✅ Testing module imports...")
     try:
         from data import DatasetLoader, TurkishDatasets, EnglishDatasets
         print("   ✓ DatasetLoader")
@@ -45,7 +47,7 @@ def explore_turkish_datasets():
         
         return True
     except Exception as e:
-        print(f" Error: {e}")
+        print(f"❌ Error: {e}")
         return False
 
 
@@ -119,16 +121,19 @@ def main():
     """Main exploration tool"""
     print("\n🔍 Dataset Infrastructure Explorer\n")
     
+    # Test imports
     if not test_imports():
         return
     
+    # Explore datasets
     explore_turkish_datasets()
     explore_english_datasets()
     
+    # Print usage
     print_usage_examples()
     
     print("\n" + "="*60)
-    print(" Setup Complete!")
+    print("✅ Setup Complete!")
     print("="*60)
     print("\nNext steps:")
     print("1. Install dependencies: pip install datasets pyyaml")
