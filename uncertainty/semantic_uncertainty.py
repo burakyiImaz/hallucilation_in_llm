@@ -1,13 +1,17 @@
+import os
 import torch
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from itertools import combinations
-import os
 
 
 class EnsembleSemanticUncertainty:
 
-    HF_TOKEN = "--"
+    """Compute semantic consistency using ensemble sentence-transformer encoders.
+
+    NOTE: model auth token is read from the `HF_TOKEN` environment variable
+    to avoid embedding secrets in source code.
+    """
 
     EN_MODELS = [
         "sentence-transformers/all-MiniLM-L6-v2",
@@ -16,6 +20,9 @@ class EnsembleSemanticUncertainty:
     ]
 
     TR_MODELS = [
+        "ytu-ce-cosmos/turkish-e5-large",
+        "intfloat/multilingual-e5-large-instruct",
+        "magibu/embeddingmagibu-152m",
         "sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2",
         "sentence-transformers/distiluse-base-multilingual-cased-v2",
         "sentence-transformers/LaBSE",
@@ -23,10 +30,18 @@ class EnsembleSemanticUncertainty:
 
     _MODEL_CACHE = {}
 
+    @staticmethod
+    def _resolve_device(requested_device=None):
+        # Keep embedding encoders on CPU by default to avoid VRAM contention
+        # with the main generation model.
+        if requested_device:
+            return requested_device
+        return os.getenv("SEMANTIC_DEVICE", "cpu")
+
     def __init__(self, responses, language="en", device=None):
         self.responses = responses
         self.language = language
-        self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
+        self.device = self._resolve_device(device)
 
         self.model_names = (
             self.EN_MODELS if language == "en" else self.TR_MODELS
@@ -35,15 +50,27 @@ class EnsembleSemanticUncertainty:
         self.encoders = []
         for name in self.model_names:
 
+            hf_token = os.getenv("HF_TOKEN", None)
+
             if name not in self._MODEL_CACHE:
                 print(f"Loading semantic model: {name}")
-                self._MODEL_CACHE[name] = SentenceTransformer(
-                    name,
-                    device=self.device,
-                    use_auth_token=self.HF_TOKEN
-                )
+                try:
+                    self._MODEL_CACHE[name] = SentenceTransformer(
+                        name,
+                        device=self.device,
+                    )
+                except Exception as exc:
+                    print(f"[warning] Failed to load semantic model {name}: {exc}")
+                    continue
 
-            self.encoders.append(self._MODEL_CACHE[name])
+            cached = self._MODEL_CACHE.get(name)
+            if cached is not None:
+                self.encoders.append(cached)
+
+        if not self.encoders:
+            raise RuntimeError(
+                "No semantic encoder could be loaded. Check internet access, HF_TOKEN, and embedding model availability."
+            )
 
     def _semantic_consistency_single_model(self, encoder):
 
