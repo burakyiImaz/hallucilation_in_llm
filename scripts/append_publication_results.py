@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Append benchmark outputs into a single local publication archive."""
 from __future__ import annotations
 
