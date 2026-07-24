@@ -1,7 +1,14 @@
 import math
 
+from decision.learned_parameters import load_learned_block
+
 
 class HallucinationScore:
+    """Auxiliary hallucination score combining white/gray/black box signals.
+    
+    This is a companion metric to the main logistic score. It provides an
+    independent aggregation for validation and debugging purposes.
+    """
 
     def __init__(
         self,
@@ -9,20 +16,23 @@ class HallucinationScore:
         gray_score=None,
         black_score=None,
         weights=None,
-        entropy_max=5.0
+        entropy_max=None
     ):
+        learned = load_learned_block()
         self.white = white_score
         self.gray = gray_score
         self.black = black_score
-        self.entropy_max = entropy_max
+        self.entropy_max = entropy_max if entropy_max is not None else float(learned.get("entropy_ceiling", 5.0))
 
+        learned_weights = learned.get("weights", {}).get("groups", {})
         self.weights = weights or {
-            "white": 0.4,
-            "gray": 0.3,
-            "black": 0.3
+            "white": float(learned_weights.get("uncertainty", 0.4)),
+            "gray": float(learned_weights.get("alignment", 0.3)),
+            "black": float(learned_weights.get("length", 0.3)),
         }
 
     def score(self):
+        """Compute weighted average of uncertainty signals."""
         components = []
         total_weight = 0.0
 
